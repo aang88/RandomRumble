@@ -19,7 +19,7 @@ public class PlayerMovement1 : MonoBehaviour
     public float airMultiplier;
     public float fallMultiplier = 2.5f;
 
-    public float t = 0.5f;
+    public float t = 1f;
 
 
     bool readyToJump;
@@ -117,7 +117,7 @@ public class PlayerMovement1 : MonoBehaviour
         {
             state = MovementState.sprinting;
             moveSpeed = sprintSpeed;
-            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 90, t);
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 85, t);
         }
 
         //Walking
