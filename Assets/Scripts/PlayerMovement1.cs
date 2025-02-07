@@ -8,7 +8,9 @@ using UnityEngine;
 public class PlayerMovement1 : MonoBehaviour
 {
     [Header("Movement")]
-    public float moveSpeed;
+    private float moveSpeed;
+    public float walkSpeed;
+    public float sprintSpeed;
 
     public float groundDrag;
 
@@ -16,15 +18,21 @@ public class PlayerMovement1 : MonoBehaviour
     public float jumpCooldown;
     public float airMultiplier;
     public float fallMultiplier = 2.5f;
+
+    public float t = 0.5f;
+
+
     bool readyToJump;
 
     [Header("Ground Check")]
     public float playerHeight;
     public LayerMask whatIsGround;
     bool grounded;
+    public Camera cam;
 
     [Header("Keybinds")]
     public KeyCode jumpKey = KeyCode.Space;
+    public KeyCode sprintKey = KeyCode.LeftShift;
 
     public Transform orientation;
 
@@ -34,6 +42,16 @@ public class PlayerMovement1 : MonoBehaviour
     Vector3 moveDirection;
 
     Rigidbody rb;
+
+    public MovementState state;
+
+    public enum MovementState
+    {
+        walking,
+        sprinting,
+        air
+    }
+
 
     // Start is called before the first frame update
     void Start()
@@ -58,6 +76,7 @@ public class PlayerMovement1 : MonoBehaviour
 
         MyInput();
         SpeedControl();
+        StateHandler();
 
         //Handle Drag
         if (grounded)
@@ -89,6 +108,31 @@ public class PlayerMovement1 : MonoBehaviour
             Invoke(nameof(ResetJump), jumpCooldown);
         }
 
+    }
+
+    private void StateHandler()
+    {
+        //Spiriting
+        if(grounded && Input.GetKey(sprintKey))
+        {
+            state = MovementState.sprinting;
+            moveSpeed = sprintSpeed;
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 90, t);
+        }
+
+        //Walking
+        else if(grounded)
+        {
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 80, t);
+            state = MovementState.walking;
+            moveSpeed = walkSpeed;
+        }
+
+        //Air
+        else
+        {
+            state = MovementState.air;
+        }
     }
 
     private void MovePlayer()
