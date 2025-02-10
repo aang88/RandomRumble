@@ -80,11 +80,11 @@ public class PlayerMovement1 : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        float rayLength = playerHeight + 0.2f;  // Full height to ensure it reaches the ground
+        float rayLength = (playerHeight*0.3f);  
        
-        UnityEngine.Debug.DrawRay(transform.position, Vector3.down * rayLength, Color.red);
+        UnityEngine.Debug.DrawRay(capsuleTransform.position, Vector3.down * rayLength, Color.red);
         //Check if Grounded 
-        grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight, whatIsGround);
+        grounded = Physics.Raycast(capsuleTransform.position, Vector3.down, playerHeight * 0.3f, whatIsGround);
 
         if (rb.velocity.y < 0.1f && rb.velocity.y > -0.1f)  // Near peak of jump
         {
