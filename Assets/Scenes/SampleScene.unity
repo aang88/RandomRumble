@@ -212,6 +212,7 @@ GameObject:
   - component: {fileID: 219776531}
   - component: {fileID: 219776532}
   - component: {fileID: 219776533}
+  - component: {fileID: 219776534}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -227,7 +228,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 219776530}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 27.61, y: 8.17, z: 21.3}
+  m_LocalPosition: {x: 27.59, y: 7.69, z: 21.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -252,19 +253,26 @@ MonoBehaviour:
   walkSpeed: 7
   sprintSpeed: 10
   groundDrag: 5
-  jumpForce: 7
+  capsuleTransform: {fileID: 797403621}
+  jumpForce: 10
   jumpCooldown: 1
   airMultiplier: 0.4
   fallMultiplier: 2.5
+  gravity: -15
+  cf: {fileID: 219776534}
   t: 0.5
   playerHeight: 8
   whatIsGround:
     serializedVersion: 2
     m_Bits: 1024
   cam: {fileID: 1482492030}
+  crouchSpeed: 3
+  crouchYScale: 0.5
   jumpKey: 32
   sprintKey: 304
+  crouchKey: 306
   orientation: {fileID: 560477011}
+  playerCollider: {fileID: 797403618}
   state: 0
 --- !u!54 &219776533
 Rigidbody:
@@ -282,6 +290,18 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 1
+--- !u!75 &219776534
+ConstantForce:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 219776530}
+  m_Enabled: 1
+  m_Force: {x: 0, y: 0, z: 0}
+  m_RelativeForce: {x: 0, y: 0, z: 0}
+  m_Torque: {x: 0, y: 0, z: 0}
+  m_RelativeTorque: {x: 0, y: 0, z: 0}
 --- !u!1 &560477010
 GameObject:
   m_ObjectHideFlags: 0
@@ -692,7 +712,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1482492027}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -6.15, z: 0}
+  m_LocalPosition: {x: 0.06, y: -6.69, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -13,11 +13,15 @@ public class PlayerMovement1 : MonoBehaviour
     public float sprintSpeed;
 
     public float groundDrag;
+    [SerializeField] private Transform capsuleTransform;
 
     public float jumpForce;
     public float jumpCooldown;
     public float airMultiplier;
     public float fallMultiplier = 2.5f;
+    public float gravity = -15f;
+    public ConstantForce cf;
+
 
     public float t = 1f;
 
@@ -30,11 +34,20 @@ public class PlayerMovement1 : MonoBehaviour
     bool grounded;
     public Camera cam;
 
+    [Header("Crouching")]
+    public float crouchSpeed;
+    public float crouchYScale;
+    private float startYScale;
+
     [Header("Keybinds")]
     public KeyCode jumpKey = KeyCode.Space;
     public KeyCode sprintKey = KeyCode.LeftShift;
+    public KeyCode crouchKey = KeyCode.LeftControl;
 
     public Transform orientation;
+
+    public CapsuleCollider playerCollider;
+   
 
     float horiziontalInput;
     float verticalInput;
@@ -49,6 +62,7 @@ public class PlayerMovement1 : MonoBehaviour
     {
         walking,
         sprinting,
+        crouching,
         air
     }
 
@@ -59,13 +73,17 @@ public class PlayerMovement1 : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
         readyToJump = true;
+        cf = GetComponent<ConstantForce>();
+        startYScale = transform.localScale.y;
     }
 
     // Update is called once per frame
     void Update()
     {
-        float rayLength = playerHeight + 0.2f;
-        //Check if Grounded
+        float rayLength = playerHeight + 0.2f;  // Full height to ensure it reaches the ground
+       
+        UnityEngine.Debug.DrawRay(transform.position, Vector3.down * rayLength, Color.red);
+        //Check if Grounded 
         grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight, whatIsGround);
 
         if (rb.velocity.y < 0.1f && rb.velocity.y > -0.1f)  // Near peak of jump
@@ -108,6 +126,20 @@ public class PlayerMovement1 : MonoBehaviour
             Invoke(nameof(ResetJump), jumpCooldown);
         }
 
+        if (Input.GetKeyDown(crouchKey))
+        {
+            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z); ;
+            transform.position = new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z);
+        }
+
+        //Stop Crouch
+
+        if (Input.GetKeyUp(crouchKey))
+        {
+            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
+            transform.position = new Vector3(transform.position.x, transform.position.y + 0.5f, transform.position.z);
+        }
+
     }
 
     private void StateHandler()
@@ -117,7 +149,14 @@ public class PlayerMovement1 : MonoBehaviour
         {
             state = MovementState.sprinting;
             moveSpeed = sprintSpeed;
-            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 85, t);
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 88, t);
+        }
+
+        //Crouching
+        if(Input.GetKey(crouchKey))
+        {
+            state = MovementState.crouching;
+            moveSpeed = crouchSpeed;
         }
 
         //Walking
@@ -140,11 +179,13 @@ public class PlayerMovement1 : MonoBehaviour
         moveDirection = orientation.forward * verticalInput + orientation.right * horiziontalInput;
         if (grounded)
         {
+            cf.force = new Vector3(0, 0, 0);
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
         }
         else if (!grounded)
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
+            cf.force = new Vector3(0, gravity, 0);
         }
     }
 
