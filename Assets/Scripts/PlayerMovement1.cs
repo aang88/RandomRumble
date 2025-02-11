@@ -17,22 +17,32 @@ public class PlayerMovement1 : MonoBehaviour
 
     public float jumpForce;
     public float jumpCooldown;
+    private bool hasDoubleJumped = false;
+
+
     public float airMultiplier;
     public float fallMultiplier = 2.5f;
     public float gravity = -15f;
     public ConstantForce cf;
 
+    public Transform weaponHolder;
 
     public float t = 1f;
 
 
     bool readyToJump;
 
+    [Header("Double Jump")]
+    private float doubleJumpForce = 10f; 
+    private float doubleJumpDelay = 0.4f;
+
     [Header("Ground Check")]
     public float playerHeight;
     public LayerMask whatIsGround;
     bool grounded;
     public Camera cam;
+    private bool canDoubleJump = false;
+
 
     [Header("Crouching")]
     public float crouchSpeed;
@@ -95,6 +105,9 @@ public class PlayerMovement1 : MonoBehaviour
         MyInput();
         SpeedControl();
         StateHandler();
+        CheckForDoubleJumpBoots();
+
+    
 
         //Handle Drag
         if (grounded)
@@ -118,12 +131,22 @@ public class PlayerMovement1 : MonoBehaviour
         verticalInput = Input.GetAxisRaw("Vertical");
         UnityEngine.Debug.Log($"ReadyToJump: {readyToJump}, grounded: {grounded}");
 
-        if (Input.GetKey(jumpKey)&& readyToJump && grounded)
+        if (Input.GetKey(jumpKey))
         {
-            readyToJump = false;
-            Jump();
-           
-            Invoke(nameof(ResetJump), jumpCooldown);
+            // Normal jump when grounded
+            if (grounded && readyToJump)
+            {
+                readyToJump = false;
+                hasDoubleJumped = false;  // Reset double jump when doing normal jump
+                Jump();
+                Invoke(nameof(ResetJump), jumpCooldown);
+            }
+            // Double jump when in air and we have the boots
+            else if (canDoubleJump && !hasDoubleJumped && !grounded)
+            {
+                hasDoubleJumped = true;
+                StartCoroutine(DoubleJumpWithDelay());
+            }
         }
 
         if (Input.GetKeyDown(crouchKey))
@@ -210,6 +233,31 @@ public class PlayerMovement1 : MonoBehaviour
     private void ResetJump()
     {
         readyToJump = true;
+    }
+
+    void CheckForDoubleJumpBoots()
+    {
+        // Look for child objects with the "DoubleJumpBoots" tag
+        foreach (Transform child in weaponHolder)
+        {
+            if (child.CompareTag("DoubleJump"))
+            {
+                canDoubleJump = true;
+                break;
+            }
+        }
+    }
+
+    private IEnumerator DoubleJumpWithDelay()
+    {
+        yield return new WaitForSeconds(doubleJumpDelay);
+        DoubleJump();
+    }
+
+    private void DoubleJump()
+    {
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.AddForce(transform.up * doubleJumpForce, ForceMode.Impulse);
     }
 }
 
