@@ -256,7 +256,7 @@ public class PlayerMovement1 : MonoBehaviour
 
     private void DoubleJump()
     {
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         rb.AddForce(transform.up * doubleJumpForce, ForceMode.Impulse);
     }
 }
