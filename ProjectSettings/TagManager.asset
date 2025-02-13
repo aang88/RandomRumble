@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - DoubleJump
+  - Enemy
   layers:
   - Default
   - TransparentFX
@@ -17,8 +18,8 @@ TagManager:
   - 
   - 
   - whatIsGround
-  - 
-  - 
+  - Weapon
+  - Player
   - 
   - 
   - 
