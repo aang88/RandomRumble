@@ -34,7 +34,7 @@ public class PlayerMovement1 : MonoBehaviour
 
     [Header("Double Jump")]
     private float doubleJumpForce = 10f; 
-    private float doubleJumpDelay = 0.4f;
+    private float doubleJumpDelay = 0.05f;
 
     [Header("Ground Check")]
     public float playerHeight;
@@ -96,7 +96,7 @@ public class PlayerMovement1 : MonoBehaviour
         //Check if Grounded 
         grounded = Physics.Raycast(capsuleTransform.position, Vector3.down, playerHeight * 0.3f, whatIsGround);
 
-        if (rb.linearVelocity.y < 0.1f && rb.linearVelocity.y > -0.1f)  // Near peak of jump
+        if (rb.velocity.y < 0.1f && rb.velocity.y > -0.1f)  // Near peak of jump
         {
             rb.AddForce(Vector3.up * Physics.gravity.y * 1.5f, ForceMode.Acceleration);
         }
@@ -112,11 +112,11 @@ public class PlayerMovement1 : MonoBehaviour
         //Handle Drag
         if (grounded)
         {
-            rb.linearDamping = groundDrag;
+            rb.drag = groundDrag;
         }
         else
         {
-            rb.linearDamping = 0;
+            rb.drag = 0;
         }
     }
 
@@ -131,7 +131,7 @@ public class PlayerMovement1 : MonoBehaviour
         verticalInput = Input.GetAxisRaw("Vertical");
         UnityEngine.Debug.Log($"ReadyToJump: {readyToJump}, grounded: {grounded}");
 
-        if (Input.GetKey(jumpKey))
+        if (Input.GetKeyDown(jumpKey))
         {
             // Normal jump when grounded
             if (grounded && readyToJump)
@@ -214,18 +214,18 @@ public class PlayerMovement1 : MonoBehaviour
 
     private void SpeedControl()
     {
-        Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
 
         if(flatVel.magnitude > moveSpeed)
         {
             Vector3 limitedVel = flatVel.normalized * moveSpeed;
-            rb.linearVelocity = new Vector3(limitedVel.x, rb.linearVelocity.y, limitedVel.z);
+            rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
         }
     }
 
     private void Jump()
     {
-        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
 
         rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
     }
@@ -256,7 +256,7 @@ public class PlayerMovement1 : MonoBehaviour
 
     private void DoubleJump()
     {
-        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         rb.AddForce(transform.up * doubleJumpForce, ForceMode.Impulse);
     }
 }
