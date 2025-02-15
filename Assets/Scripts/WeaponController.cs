@@ -11,11 +11,12 @@ public class WeaponController : MonoBehaviour
     //public AudioClip WeaponAttackSound;
     public bool isAttacking = false;
     public float AttackWindow = 1.0f;
+    public CollisionDetection collisionDetection;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
@@ -33,6 +34,7 @@ public class WeaponController : MonoBehaviour
     public void MeeleAttack()
     {
         isAttacking = true;
+        collisionDetection.ResetHit();
         CanAttack = false;
         Animator anim = Meele.GetComponent<Animator>();
         anim.SetTrigger("Attack");
