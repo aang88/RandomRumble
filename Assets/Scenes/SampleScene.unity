@@ -3039,7 +3039,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh-15392
+  m_Name: pb_Mesh-1324
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -16393,6 +16393,7 @@ GameObject:
   m_Component:
   - component: {fileID: 970508691}
   - component: {fileID: 970508692}
+  - component: {fileID: 970508693}
   m_Layer: 0
   m_Name: WeaponHolder
   m_TagString: Untagged
@@ -16433,9 +16434,25 @@ MonoBehaviour:
   Meele: {fileID: 1667104218}
   CanAttack: 1
   AttackCooldown: 1
-  WeaponAttackSound: {fileID: 8300000, guid: a3efa98410710574b9737e239997724f, type: 3}
   isAttacking: 0
   AttackWindow: 1
+--- !u!114 &970508693
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 970508690}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 357a1201fd049b2408325648ed774385, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  weapons:
+  - {fileID: 1895551426}
+  - {fileID: 1667104220}
+  keys: 3100000032000000
+  switchTime: 1
 --- !u!1001 &971301568
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -33883,6 +33900,18 @@ MonoBehaviour:
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: DamageGun, Assembly-CSharp
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
