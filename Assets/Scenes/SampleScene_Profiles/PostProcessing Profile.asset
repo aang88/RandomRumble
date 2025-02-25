@@ -17,14 +17,14 @@ MonoBehaviour:
     overrideState: 1
     value: 1
   colored:
-    overrideState: 0
-    value: 1
+    overrideState: 1
+    value: 0
   intensity:
     overrideState: 1
-    value: 0.455
+    value: 0.116
   size:
     overrideState: 1
-    value: 1
+    value: 0.46
   lumContrib:
     overrideState: 0
     value: 0.8
@@ -76,7 +76,7 @@ MonoBehaviour:
     overrideState: 0
     value: 56
   kernelSize:
-    overrideState: 1
+    overrideState: 0
     value: 0
 --- !u!114 &11400000
 MonoBehaviour:
@@ -116,14 +116,14 @@ MonoBehaviour:
     overrideState: 1
     value: 1
   mode:
-    overrideState: 0
+    overrideState: 1
     value: 1
   intensity:
-    overrideState: 0
-    value: 0
+    overrideState: 1
+    value: 0.45
   color:
-    overrideState: 0
-    value: {r: 0, g: 0, b: 0, a: 1}
+    overrideState: 1
+    value: {r: 0.6509434, g: 0.107467055, b: 0.107467055, a: 1}
   ambientOnly:
     overrideState: 0
     value: 1
@@ -137,7 +137,7 @@ MonoBehaviour:
     overrideState: 0
     value: -12
   thicknessModifier:
-    overrideState: 0
+    overrideState: 1
     value: 1
   directLightingStrength:
     overrideState: 0
@@ -160,13 +160,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b77c5407dc277943b591ade9e6b18c5, type: 3}
   m_Name: LensDistortion
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   enabled:
     overrideState: 1
     value: 1
   intensity:
     overrideState: 1
-    value: 11
+    value: 26
   intensityX:
     overrideState: 0
     value: 1
@@ -208,7 +208,7 @@ MonoBehaviour:
     overrideState: 0
     value: {x: 0.5, y: 0.5}
   intensity:
-    overrideState: 0
+    overrideState: 1
     value: 0
   smoothness:
     overrideState: 0
