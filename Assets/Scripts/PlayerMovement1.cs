@@ -92,8 +92,11 @@ public class PlayerMovement1 : MonoBehaviour
     {
         float rayLength = (playerHeight*0.3f);  
        
-        UnityEngine.Debug.DrawRay(capsuleTransform.position, Vector3.down * rayLength, Color.red);
+        Color rayColor = grounded ? Color.green : Color.red;
+        UnityEngine.Debug.DrawRay(capsuleTransform.position, Vector3.down * rayLength, rayColor);
         //Check if Grounded 
+
+        
         grounded = Physics.Raycast(capsuleTransform.position, Vector3.down, playerHeight * 0.3f, whatIsGround);
 
         if (rb.velocity.y < 0.1f && rb.velocity.y > -0.1f)  // Near peak of jump
@@ -106,6 +109,8 @@ public class PlayerMovement1 : MonoBehaviour
         SpeedControl();
         StateHandler();
         CheckForDoubleJumpBoots();
+
+        UnityEngine.Debug.Log($"Grounded: {grounded}");
 
     
 
