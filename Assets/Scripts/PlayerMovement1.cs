@@ -12,6 +12,10 @@ public class PlayerMovement1 : MonoBehaviour
     public float walkSpeed;
     public float sprintSpeed;
 
+    private float originalWalkSpeed;
+    private float originalSprintSpeed;
+
+
     public float groundDrag;
     [SerializeField] private Transform capsuleTransform;
 
@@ -28,6 +32,9 @@ public class PlayerMovement1 : MonoBehaviour
     public Transform weaponHolder;
 
     public float t = 1f;
+
+    //Need this so it doesn't apply speed reduction over and over lol
+    private bool wasBlocking = false;
 
 
     bool readyToJump;
@@ -80,6 +87,10 @@ public class PlayerMovement1 : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        //Store these in case of speed modification
+        originalWalkSpeed = walkSpeed;
+        originalSprintSpeed = sprintSpeed;
+
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
         readyToJump = true;
@@ -106,6 +117,7 @@ public class PlayerMovement1 : MonoBehaviour
         SpeedControl();
         StateHandler();
         CheckForDoubleJumpBoots();
+        CheckIfBlocking();
 
     
 
@@ -123,6 +135,28 @@ public class PlayerMovement1 : MonoBehaviour
     void FixedUpdate()
     {
         MovePlayer();
+    }
+
+    private void CheckIfBlocking()
+    {
+        WeaponController weaponController = weaponHolder.gameObject.GetComponent<WeaponController>();
+        bool isBlocking = weaponController.isBlocking;
+
+        // Only modify speeds when blocking state changes
+        if (isBlocking && !wasBlocking)
+        {
+            // First time entering blocking state
+            walkSpeed = originalWalkSpeed * 0.5f;
+            sprintSpeed = originalSprintSpeed * 0.5f;
+        }
+        else if (!isBlocking && wasBlocking)
+        {
+            // Just stopped blocking
+            walkSpeed = originalWalkSpeed;
+            sprintSpeed = originalSprintSpeed;
+        }
+
+        wasBlocking = isBlocking; // Update the previous state
     }
 
     private void MyInput()

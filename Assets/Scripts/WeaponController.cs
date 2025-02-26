@@ -11,6 +11,11 @@ public class WeaponController : MonoBehaviour
     //public AudioClip WeaponAttackSound;
     public bool isAttacking = false;
     public float AttackWindow = 1.0f;
+
+    public bool CanBlock = true;
+    public bool isBlocking = false;
+    public float BlockCooldown = 1.0f;
+    
     public CollisionDetection collisionDetection;
 
     // Start is called before the first frame update
@@ -24,10 +29,28 @@ public class WeaponController : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            if (CanAttack)
+            if (CanAttack && !isBlocking)
             {
                 MeeleAttack();
             }
+        }
+
+        if (Input.GetMouseButton(1))
+        {
+            if (CanBlock && !isAttacking)
+            {
+                Block();
+            }
+        }
+
+        if (Input.GetMouseButtonUp(1))
+        {
+            isBlocking = false;
+            CanBlock = false;
+            Animator anim = Meele.GetComponent<Animator>();
+            anim.SetBool("IsBlocking", false);
+            StartCoroutine(ResetBlockCooldown());
+
         }
     }
 
@@ -44,6 +67,13 @@ public class WeaponController : MonoBehaviour
         StartCoroutine(ResetAttackCooldown());
     }
 
+    public void Block()
+    {
+        isBlocking = true;
+        Animator anim = Meele.GetComponent<Animator>();
+        anim.SetBool("IsBlocking", true);
+    }
+
     IEnumerator ResetAttackCooldown()
     {
         StartCoroutine(ResetIsAttacking());
@@ -51,6 +81,13 @@ public class WeaponController : MonoBehaviour
         UnityEngine.Debug.Log("CanAttack is True");
         CanAttack = true;
     }
+
+    IEnumerator ResetBlockCooldown()
+    {
+        yield return new WaitForSeconds(BlockCooldown);
+        CanBlock= true;
+    }
+
     IEnumerator ResetIsAttacking()
     {
         yield return new WaitForSeconds(AttackWindow);
