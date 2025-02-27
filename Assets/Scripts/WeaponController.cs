@@ -12,9 +12,13 @@ public class WeaponController : MonoBehaviour
     public bool isAttacking = false;
     public float AttackWindow = 1.0f;
 
+    public Transform weaponOwner;
+
     public bool CanBlock = true;
     public bool isBlocking = false;
     public float BlockCooldown = 1.0f;
+
+    public bool isPlayer;
     
     public CollisionDetection collisionDetection;
 
@@ -27,30 +31,39 @@ public class WeaponController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if(isPlayer == true)
         {
-            if (CanAttack && !isBlocking)
+            if (Input.GetMouseButtonDown(0))
             {
-                MeeleAttack();
+                if (CanAttack && !isBlocking)
+                {
+                    MeeleAttack();
+                }
+            }
+
+            if (Input.GetMouseButton(1))
+            {
+                if (CanBlock && !isAttacking)
+                {
+                    Block();
+                }
+            }
+
+            if (Input.GetMouseButtonUp(1))
+            {
+                isBlocking = false;
+                CanBlock = false;
+                Animator anim = Meele.GetComponent<Animator>();
+                anim.SetBool("IsBlocking", false);
+                StartCoroutine(ResetBlockCooldown());
+
             }
         }
 
-        if (Input.GetMouseButton(1))
+        //Dummy Attacking
+        else
         {
-            if (CanBlock && !isAttacking)
-            {
-                Block();
-            }
-        }
-
-        if (Input.GetMouseButtonUp(1))
-        {
-            isBlocking = false;
-            CanBlock = false;
-            Animator anim = Meele.GetComponent<Animator>();
-            anim.SetBool("IsBlocking", false);
-            StartCoroutine(ResetBlockCooldown());
-
+            MeeleAttack();
         }
     }
 
@@ -72,6 +85,11 @@ public class WeaponController : MonoBehaviour
         isBlocking = true;
         Animator anim = Meele.GetComponent<Animator>();
         anim.SetBool("IsBlocking", true);
+    }
+
+    public bool IsBlocking()
+    {
+        return isBlocking;
     }
 
     IEnumerator ResetAttackCooldown()

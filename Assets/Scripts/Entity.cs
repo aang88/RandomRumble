@@ -7,6 +7,8 @@ public class Entity : MonoBehaviour
     [SerializeField] private float StartingHealth;
     private float health;
 
+    public WeaponController weaponController;
+
     public float Health
     {
         get

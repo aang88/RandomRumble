@@ -15,32 +15,38 @@ public class PlayerMovement1 : MonoBehaviour
     private float originalWalkSpeed;
     private float originalSprintSpeed;
 
+    [Header("Tilt Settings")]
+    public float maxTiltAngle = 15f;
+    public float tiltSpeed = 5f;
+    public float returnSpeed = 3f;
 
+    [Header("Realistic Jump & Land Camera")]
+    public float jumpLookAmount = 3f;
+    public float landLookAmount = 4f;
+    public float cameraJumpDuration = 1.2f;
+    public float cameraLandDuration = 0.8f;
+    public float jumpSmoothness = 2.5f;
+
+    [Header("Drag")]
     public float groundDrag;
     [SerializeField] private Transform capsuleTransform;
 
+    [Header("Jump Physics")]
     public float jumpForce;
     public float jumpCooldown;
     private bool hasDoubleJumped = false;
-
-
     public float airMultiplier;
     public float fallMultiplier = 2.5f;
     public float gravity = -15f;
     public ConstantForce cf;
 
     public Transform weaponHolder;
-
     public float t = 1f;
-
-    //Need this so it doesn't apply speed reduction over and over lol
     private bool wasBlocking = false;
-
-
     bool readyToJump;
 
     [Header("Double Jump")]
-    private float doubleJumpForce = 10f; 
+    private float doubleJumpForce = 10f;
     private float doubleJumpDelay = 0.05f;
 
     [Header("Ground Check")]
@@ -49,7 +55,7 @@ public class PlayerMovement1 : MonoBehaviour
     bool grounded;
     public Camera cam;
     private bool canDoubleJump = false;
-
+    private bool wasGrounded = true;
 
     [Header("Crouching")]
     public float crouchSpeed;
@@ -62,19 +68,15 @@ public class PlayerMovement1 : MonoBehaviour
     public KeyCode crouchKey = KeyCode.LeftControl;
 
     public Transform orientation;
-
     public CapsuleCollider playerCollider;
-   
 
     float horiziontalInput;
     float verticalInput;
-
     Vector3 moveDirection;
-
     Rigidbody rb;
+    private CameraEffects cameraEffects;
 
     public MovementState state;
-
     public enum MovementState
     {
         walking,
@@ -83,11 +85,8 @@ public class PlayerMovement1 : MonoBehaviour
         air
     }
 
-
-    // Start is called before the first frame update
     void Start()
     {
-        //Store these in case of speed modification
         originalWalkSpeed = walkSpeed;
         originalSprintSpeed = sprintSpeed;
 
@@ -96,22 +95,36 @@ public class PlayerMovement1 : MonoBehaviour
         readyToJump = true;
         cf = GetComponent<ConstantForce>();
         startYScale = transform.localScale.y;
+
+        cameraEffects = cam.GetComponent<CameraEffects>();
+        if (cameraEffects == null)
+            cameraEffects = cam.gameObject.AddComponent<CameraEffects>();
+
+        cameraEffects.jumpLookAmount = jumpLookAmount;
+        cameraEffects.landLookAmount = landLookAmount;
+        cameraEffects.cameraJumpDuration = cameraJumpDuration;
+        cameraEffects.cameraLandDuration = cameraLandDuration;
+        cameraEffects.effectSmoothness = jumpSmoothness;
+        cameraEffects.maxTiltAngle = maxTiltAngle;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        float rayLength = (playerHeight*0.3f);  
-       
+        float rayLength = (playerHeight * 0.3f);
+
         UnityEngine.Debug.DrawRay(capsuleTransform.position, Vector3.down * rayLength, Color.red);
-        //Check if Grounded 
         grounded = Physics.Raycast(capsuleTransform.position, Vector3.down, playerHeight * 0.3f, whatIsGround);
 
-        if (rb.velocity.y < 0.1f && rb.velocity.y > -0.1f)  // Near peak of jump
+        if (!wasGrounded && grounded)
+        {
+            ApplyLandCamera();
+        }
+        wasGrounded = grounded;
+
+        if (rb.velocity.y < 0.1f && rb.velocity.y > -0.1f)
         {
             rb.AddForce(Vector3.up * Physics.gravity.y * 1.5f, ForceMode.Acceleration);
         }
-
 
         MyInput();
         SpeedControl();
@@ -119,9 +132,6 @@ public class PlayerMovement1 : MonoBehaviour
         CheckForDoubleJumpBoots();
         CheckIfBlocking();
 
-    
-
-        //Handle Drag
         if (grounded)
         {
             rb.drag = groundDrag;
@@ -142,21 +152,18 @@ public class PlayerMovement1 : MonoBehaviour
         WeaponController weaponController = weaponHolder.gameObject.GetComponent<WeaponController>();
         bool isBlocking = weaponController.isBlocking;
 
-        // Only modify speeds when blocking state changes
         if (isBlocking && !wasBlocking)
         {
-            // First time entering blocking state
             walkSpeed = originalWalkSpeed * 0.5f;
             sprintSpeed = originalSprintSpeed * 0.5f;
         }
         else if (!isBlocking && wasBlocking)
         {
-            // Just stopped blocking
             walkSpeed = originalWalkSpeed;
             sprintSpeed = originalSprintSpeed;
         }
 
-        wasBlocking = isBlocking; // Update the previous state
+        wasBlocking = isBlocking;
     }
 
     private void MyInput()
@@ -167,15 +174,13 @@ public class PlayerMovement1 : MonoBehaviour
 
         if (Input.GetKeyDown(jumpKey))
         {
-            // Normal jump when grounded
             if (grounded && readyToJump)
             {
                 readyToJump = false;
-                hasDoubleJumped = false;  // Reset double jump when doing normal jump
+                hasDoubleJumped = false;
                 Jump();
                 Invoke(nameof(ResetJump), jumpCooldown);
             }
-            // Double jump when in air and we have the boots
             else if (canDoubleJump && !hasDoubleJumped && !grounded)
             {
                 hasDoubleJumped = true;
@@ -185,46 +190,36 @@ public class PlayerMovement1 : MonoBehaviour
 
         if (Input.GetKeyDown(crouchKey))
         {
-            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z); ;
+            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
             transform.position = new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z);
         }
-
-        //Stop Crouch
 
         if (Input.GetKeyUp(crouchKey))
         {
             transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
             transform.position = new Vector3(transform.position.x, transform.position.y + 0.5f, transform.position.z);
         }
-
     }
 
     private void StateHandler()
     {
-        //Spiriting
-        if(grounded && Input.GetKey(sprintKey))
+        if (grounded && Input.GetKey(sprintKey))
         {
             state = MovementState.sprinting;
             moveSpeed = sprintSpeed;
             cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 88, t);
         }
-
-        //Crouching
-        if(Input.GetKey(crouchKey))
+        else if (Input.GetKey(crouchKey))
         {
             state = MovementState.crouching;
             moveSpeed = crouchSpeed;
         }
-
-        //Walking
-        else if(grounded)
+        else if (grounded)
         {
             cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 80, t);
             state = MovementState.walking;
             moveSpeed = walkSpeed;
         }
-
-        //Air
         else
         {
             state = MovementState.air;
@@ -250,7 +245,7 @@ public class PlayerMovement1 : MonoBehaviour
     {
         Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
 
-        if(flatVel.magnitude > moveSpeed)
+        if (flatVel.magnitude > moveSpeed)
         {
             Vector3 limitedVel = flatVel.normalized * moveSpeed;
             rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
@@ -259,8 +254,9 @@ public class PlayerMovement1 : MonoBehaviour
 
     private void Jump()
     {
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        cameraEffects.TriggerJumpEffect();
 
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
     }
 
@@ -271,7 +267,6 @@ public class PlayerMovement1 : MonoBehaviour
 
     void CheckForDoubleJumpBoots()
     {
-        // Look for child objects with the "DoubleJumpBoots" tag
         foreach (Transform child in weaponHolder)
         {
             if (child.CompareTag("DoubleJump"))
@@ -290,8 +285,19 @@ public class PlayerMovement1 : MonoBehaviour
 
     private void DoubleJump()
     {
+        cameraEffects.TriggerJumpEffect();
+
         rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         rb.AddForce(transform.up * doubleJumpForce, ForceMode.Impulse);
     }
-}
 
+    private void ApplyLandCamera()
+    {
+        cameraEffects.TriggerLandEffect();
+    }
+
+    void LateUpdate()
+    {
+        // Empty - camera effects are now handled by FPSCameraEffects
+    }
+}
