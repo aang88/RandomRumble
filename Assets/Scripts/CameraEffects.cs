@@ -1,5 +1,3 @@
-// Add this class to your project (new script file)
-
 using UnityEngine;
 using System.Collections;
 
@@ -85,9 +83,15 @@ public class CameraEffects : MonoBehaviour
 
     private void CalculateCameraTilt()
     {
-        // Calculate horizontal movement
-        Vector3 movement = cam.transform.position - lastPosition;
-        float horizontalSpeed = movement.x / Time.deltaTime;
+        // Calculate movement
+        Vector3 movement = transform.position - lastPosition;
+        
+        // Convert world movement to local movement relative to camera's forward direction
+        // This ensures tilt works in all directions the camera is facing
+        Vector3 localMovement = transform.InverseTransformDirection(movement);
+        
+        // Use local right axis (X) for calculating tilt
+        float horizontalSpeed = localMovement.x / Time.deltaTime;
 
         // Set target tilt based on horizontal movement
         targetTiltAngle = -horizontalSpeed * maxTiltAngle * 0.1f;
@@ -100,7 +104,7 @@ public class CameraEffects : MonoBehaviour
         }
 
         // Store current position for next frame
-        lastPosition = cam.transform.position;
+        lastPosition = transform.position;
     }
 
     public void TriggerJumpEffect()
