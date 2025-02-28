@@ -40,6 +40,14 @@ public class PlayerMovement1 : MonoBehaviour
     public float gravity = -15f;
     public ConstantForce cf;
 
+    [Header("Slope Handling")]
+    public float maxSlopeAngle = 40f;             // Maximum angle player can walk on
+    private RaycastHit slopeHit;                  // Store information about the slope
+    private bool exitingSlope;                    // Flag for when player jumps off slope
+    public float slopeSlideSpeed = 10f;           // Speed at which player slides down steep slopes
+    public bool useGravityOnSlopes = true;        // Whether to use gravity on slopes or not
+    
+
     public Transform weaponHolder;
     public float t = 1f;
     private bool wasBlocking = false;
@@ -59,8 +67,12 @@ public class PlayerMovement1 : MonoBehaviour
 
     [Header("Crouching")]
     public float crouchSpeed;
-    public float crouchYScale;
+    public float crouchYScale = 0.5f;
     private float startYScale;
+    private bool isCrouching = false;
+    private float originalColliderHeight;
+    private Vector3 originalColliderCenter;
+    public Transform modelTransform; // Assign this in inspector to your visual model
 
     [Header("Keybinds")]
     public KeyCode jumpKey = KeyCode.Space;
@@ -94,7 +106,15 @@ public class PlayerMovement1 : MonoBehaviour
         rb.freezeRotation = true;
         readyToJump = true;
         cf = GetComponent<ConstantForce>();
-        startYScale = transform.localScale.y;
+        
+        // If modelTransform isn't assigned, use this transform (for backward compatibility)
+        if (modelTransform == null)
+            modelTransform = transform;
+            
+        // Store original values
+        startYScale = modelTransform.localScale.y;
+        originalColliderHeight = playerCollider.height;
+        originalColliderCenter = playerCollider.center;
 
         cameraEffects = cam.GetComponent<CameraEffects>();
         if (cameraEffects == null)
@@ -106,6 +126,10 @@ public class PlayerMovement1 : MonoBehaviour
         cameraEffects.cameraLandDuration = cameraLandDuration;
         cameraEffects.effectSmoothness = jumpSmoothness;
         cameraEffects.maxTiltAngle = maxTiltAngle;
+        
+        // Force to standing position
+        isCrouching = false;
+        ApplyStand();
     }
 
     void Update()
@@ -147,6 +171,26 @@ public class PlayerMovement1 : MonoBehaviour
         MovePlayer();
     }
 
+    private bool OnSlope()
+    {
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, playerHeight * 0.5f + 0.3f, whatIsGround))
+        {
+            float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
+            return angle < maxSlopeAngle && angle != 0;
+        }
+        return false;
+    }
+
+    private bool OnSteepSlope()
+    {
+        if (Physics.Raycast(transform.position, Vector3.down, out slopeHit, playerHeight * 0.5f + 0.3f, whatIsGround))
+        {
+            float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
+            return angle >= maxSlopeAngle;
+        }
+        return false;
+    }
+
     private void CheckIfBlocking()
     {
         WeaponController weaponController = weaponHolder.gameObject.GetComponent<WeaponController>();
@@ -170,7 +214,6 @@ public class PlayerMovement1 : MonoBehaviour
     {
         horiziontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
-        UnityEngine.Debug.Log($"ReadyToJump: {readyToJump}, grounded: {grounded}");
 
         if (Input.GetKeyDown(jumpKey))
         {
@@ -188,31 +231,86 @@ public class PlayerMovement1 : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(crouchKey))
+        // Simple crouch toggle on key down only
+        if (Input.GetKeyDown(crouchKey) && grounded)
         {
-            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
-            transform.position = new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z);
+            ToggleCrouch();
         }
+    }
+    
+    private void ToggleCrouch()
+    {
+        isCrouching = !isCrouching;
+        
+        if (isCrouching)
+        {
+            ApplyCrouch();
+        }
+        else
+        {
+            // Check if there's room to stand
+            if (!Physics.Raycast(transform.position, Vector3.up, 2f, whatIsGround))
+            {
+                ApplyStand();
+            }
+            else
+            {
+                // Can't stand up - obstacle above
+                isCrouching = true;
+            }
+        }
+    }
 
-        if (Input.GetKeyUp(crouchKey))
-        {
-            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
-            transform.position = new Vector3(transform.position.x, transform.position.y + 0.5f, transform.position.z);
-        }
+    private void ApplyCrouch()
+    {
+        // Scale the visual model - this won't affect physics
+        modelTransform.localScale = new Vector3(
+            modelTransform.localScale.x,
+            startYScale * crouchYScale,
+            modelTransform.localScale.z
+        );
+        
+        // Adjust the collider height for physics
+        playerCollider.height = originalColliderHeight * crouchYScale;
+        
+        // Calculate the center offset to keep the bottom of the collider in place
+        float centerYOffset = (originalColliderHeight - playerCollider.height) / 2f;
+        playerCollider.center = new Vector3(
+            originalColliderCenter.x,
+            originalColliderCenter.y - centerYOffset,
+            originalColliderCenter.z
+        );
+
+        Vector3 cameraPosition = cam.transform.localPosition;
+        cam.transform.localPosition = cameraPosition;
+    }
+
+    private void ApplyStand()
+    {
+        // Reset visual model scale
+        modelTransform.localScale = new Vector3(
+            modelTransform.localScale.x,
+            startYScale,
+            modelTransform.localScale.z
+        );
+        
+        // Reset collider to original values
+        playerCollider.height = originalColliderHeight;
+        playerCollider.center = originalColliderCenter;
     }
 
     private void StateHandler()
     {
-        if (grounded && Input.GetKey(sprintKey))
+        if (isCrouching)
+        {
+            state = MovementState.crouching;
+            moveSpeed = crouchSpeed;
+        }
+        else if (grounded && Input.GetKey(sprintKey))
         {
             state = MovementState.sprinting;
             moveSpeed = sprintSpeed;
             cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 88, t);
-        }
-        else if (Input.GetKey(crouchKey))
-        {
-            state = MovementState.crouching;
-            moveSpeed = crouchSpeed;
         }
         else if (grounded)
         {
@@ -228,32 +326,88 @@ public class PlayerMovement1 : MonoBehaviour
 
     private void MovePlayer()
     {
+        // Calculate move direction
         moveDirection = orientation.forward * verticalInput + orientation.right * horiziontalInput;
-        if (grounded)
+
+        // Slope movement
+        if (OnSlope() && !exitingSlope)
         {
-            cf.force = new Vector3(0, 0, 0);
-            rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
+            // Get slope-adjusted movement direction 
+            Vector3 slopeDirection = Vector3.ProjectOnPlane(moveDirection, slopeHit.normal).normalized;
+            
+            // Apply force along slope
+            if (grounded)
+            {
+                rb.AddForce(slopeDirection * moveSpeed * 10f, ForceMode.Force);
+                
+                // Apply extra downforce when moving down steep slopes
+                if (slopeDirection.y < 0)
+                {
+                    rb.AddForce(Vector3.down * 80f, ForceMode.Force);
+                }
+            }
+            else
+            {
+                rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
+                if (useGravityOnSlopes)
+                    cf.force = new Vector3(0, gravity, 0);
+            }
         }
-        else if (!grounded)
+        // Handle steep slopes (slide down)
+        else if (OnSteepSlope() && grounded)
         {
-            rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
-            cf.force = new Vector3(0, gravity, 0);
+            // Calculate slide direction (down the slope)
+            Vector3 slideDirection = Vector3.up - slopeHit.normal * Vector3.Dot(Vector3.up, slopeHit.normal);
+            slideDirection = slideDirection.normalized;
+            
+            // Apply slide force
+            rb.AddForce(slideDirection * slopeSlideSpeed, ForceMode.Force);
         }
+        // Normal movement (not on slope)
+        else
+        {
+            if (grounded)
+            {
+                cf.force = new Vector3(0, 0, 0);
+                rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
+            }
+            else
+            {
+                rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
+                cf.force = new Vector3(0, gravity, 0);
+            }
+        }
+
+        // Turn off gravity when on ground (unless we're on a slope and using gravity)
+        rb.useGravity = !grounded || (OnSlope() && useGravityOnSlopes);
     }
 
     private void SpeedControl()
     {
-        Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-
-        if (flatVel.magnitude > moveSpeed)
+        // Handling slope speed
+        if (OnSlope() && !exitingSlope)
         {
-            Vector3 limitedVel = flatVel.normalized * moveSpeed;
-            rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
+            if (rb.velocity.magnitude > moveSpeed)
+            {
+                rb.velocity = rb.velocity.normalized * moveSpeed;
+            }
+        }
+        // Normal speed control
+        else
+        {
+            Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+
+            if (flatVel.magnitude > moveSpeed)
+            {
+                Vector3 limitedVel = flatVel.normalized * moveSpeed;
+                rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
+            }
         }
     }
 
     private void Jump()
     {
+        exitingSlope = true;
         cameraEffects.TriggerJumpEffect();
 
         rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
@@ -263,6 +417,7 @@ public class PlayerMovement1 : MonoBehaviour
     private void ResetJump()
     {
         readyToJump = true;
+        exitingSlope = false;
     }
 
     void CheckForDoubleJumpBoots()
@@ -294,10 +449,5 @@ public class PlayerMovement1 : MonoBehaviour
     private void ApplyLandCamera()
     {
         cameraEffects.TriggerLandEffect();
-    }
-
-    void LateUpdate()
-    {
-        // Empty - camera effects are now handled by FPSCameraEffects
     }
 }
