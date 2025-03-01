@@ -265,8 +265,10 @@ public class PlayerMovement1 : MonoBehaviour
 
         if (Input.GetKeyDown(jumpKey))
         {
+             UnityEngine.Debug.Log($"Trying to jump and grounded: {grounded} and readyToJump: {readyToJump}");
             if (grounded && readyToJump)
             {
+                UnityEngine.Debug.Log("Jumping Key");
                 readyToJump = false;
                 hasDoubleJumped = false;
                 Jump();
@@ -381,60 +383,60 @@ public class PlayerMovement1 : MonoBehaviour
         bool isMoving = (Mathf.Abs(horiziontalInput) > 0.01f || Mathf.Abs(verticalInput) > 0.01f);
 
         // Enhanced slope handling
-        if (OnSlope())
-        {
-            // Disable gravity when on slope
-            rb.useGravity = false;
-            cf.force = Vector3.zero;
+        // if (OnSlope())
+        // {
+        //     // Disable gravity when on slope
+        //     rb.useGravity = false;
+        //     cf.force = Vector3.zero;
 
-            if (!isMoving)
-            {
-                // Completely stop with additional checks
-                rb.velocity = Vector3.zero;
+        //     if (!isMoving)
+        //     {
+        //         // Completely stop with additional checks
+        //         rb.velocity = Vector3.zero;
                 
-                // Add extra friction to prevent any sliding
-                Vector3 velocityToCancel = rb.velocity;
-                velocityToCancel.y = 0; // Only cancel horizontal movement
-                rb.AddForce(-velocityToCancel * rb.mass * 10f, ForceMode.Acceleration);
+        //         // Add extra friction to prevent any sliding
+        //         Vector3 velocityToCancel = rb.velocity;
+        //         velocityToCancel.y = 0; // Only cancel horizontal movement
+        //         rb.AddForce(-velocityToCancel * rb.mass * 10f, ForceMode.Acceleration);
                 
-                UnityEngine.Debug.Log("Stopped on Slope - Velocity Zeroed");
-            }
-            else
-            {
-                // Get slope direction adjusted to player's movement
-                Vector3 slopeDirection = Vector3.ProjectOnPlane(moveDirection, slopeHit.normal).normalized;
+        //         UnityEngine.Debug.Log("Stopped on Slope - Velocity Zeroed");
+        //     }
+        //     else
+        //     {
+        //         // Get slope direction adjusted to player's movement
+        //         Vector3 slopeDirection = Vector3.ProjectOnPlane(moveDirection, slopeHit.normal).normalized;
                 
-                // Apply movement along the slope
-                rb.AddForce(slopeDirection * moveSpeed * 10f, ForceMode.Force);
+        //         // Apply movement along the slope
+        //         rb.AddForce(slopeDirection * moveSpeed * 10f, ForceMode.Force);
                 
-                // Optional: Add slight downward force on downward slopes
-                if (slopeDirection.y < 0)
-                {
-                    rb.AddForce(Vector3.down * 20f, ForceMode.Force);
-                }
-            }
+        //         // Optional: Add slight downward force on downward slopes
+        //         if (slopeDirection.y < 0)
+        //         {
+        //             rb.AddForce(Vector3.down * 20f, ForceMode.Force);
+        //         }
+        //     }
+        // }
+        // else
+        // {
+        // Normal movement physics
+        rb.useGravity = !grounded;
+        
+        if (!grounded)
+        {
+            cf.force = new Vector3(0, gravity, 0);
         }
         else
         {
-            // Normal movement physics
-            rb.useGravity = !grounded;
-            
-            if (!grounded)
-            {
-                cf.force = new Vector3(0, gravity, 0);
-            }
-            else
-            {
-                cf.force = Vector3.zero;
-            }
-
-            // Normal ground or air movement
-            float currentMoveSpeed = grounded ? moveSpeed : moveSpeed * airMultiplier;
-            rb.AddForce(moveDirection.normalized * currentMoveSpeed * 10f, ForceMode.Force);
+            cf.force = Vector3.zero;
         }
 
+        // Normal ground or air movement
+        float currentMoveSpeed = grounded ? moveSpeed : moveSpeed * airMultiplier;
+        rb.AddForce(moveDirection.normalized * currentMoveSpeed * 10f, ForceMode.Force);
+        // }
+
         // Debug logging
-        UnityEngine.Debug.Log($"Velocity: {rb.velocity}, On Slope: {OnSlope()}");
+        // UnityEngine.Debug.Log($"Velocity: {rb.velocity}, On Slope: {OnSlope()}");
     }
 
     private void SpeedControl()
@@ -465,17 +467,22 @@ public class PlayerMovement1 : MonoBehaviour
         exitingSlope = true;
         cameraEffects.TriggerJumpEffect();
 
-        // Calculate jump direction based on whether we're on a slope
-        Vector3 jumpDirection = transform.up;
-
-        if (OnSlope())
+        // Use a simple vertical jump with some forward direction
+        Vector3 jumpDirection = Vector3.up;
+        
+        // Add a bit of your look direction to the jump
+        if (moveDirection.magnitude > 0.1f)
         {
-            // Jump perpendicular to the slope's surface
-            jumpDirection = Vector3.ProjectOnPlane(jumpDirection, slopeHit.normal).normalized;
+            // If you're moving, add some of that direction to the jump
+            Vector3 horizontalDir = new Vector3(moveDirection.x, 0f, moveDirection.z).normalized;
+            jumpDirection = (jumpDirection + horizontalDir * 0.3f).normalized;
         }
 
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z); // Reset vertical velocity to prevent sliding down during jump
-        rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse); // Apply the jump force
+        // Reset vertical velocity
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        
+        // Apply the jump force
+        rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse);
     }
 
     private void ResetJump()
