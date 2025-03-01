@@ -7,11 +7,11 @@ using UnityEngine;
 
 public class PlayerMovement1 : MonoBehaviour
 {
+    #region Variables
     [Header("Movement")]
     private float moveSpeed;
     public float walkSpeed;
     public float sprintSpeed;
-
     private float originalWalkSpeed;
     private float originalSprintSpeed;
 
@@ -41,22 +41,30 @@ public class PlayerMovement1 : MonoBehaviour
     public ConstantForce cf;
 
     [Header("Slope Handling")]
-    public float maxSlopeAngle = 40f;             // Maximum angle player can walk on
-    private RaycastHit slopeHit;                  // Store information about the slope
-    private bool exitingSlope;                    // Flag for when player jumps off slope
-    public float slopeSlideSpeed = 10f;           // Speed at which player slides down steep slopes
-    public bool useGravityOnSlopes = true;        // Whether to use gravity on slopes or not
-    public float downforceOnSlopes = 30f;         // Downward force to keep player on ground when going downhill
+    public float maxSlopeAngle = 40f;
+    private RaycastHit slopeHit;
+    private bool exitingSlope;
+    public float slopeSlideSpeed = 10f;
+    public bool useGravityOnSlopes = true;
+    public float downforceOnSlopes = 30f;
 
     [Header("Sliding")]
-    public float slideForce = 400f;               // Force applied when starting a slide
-    public float slideDuration = 1.0f;            // How long a slide lasts
-    public float slideYScale = 0.4f;              // How much to reduce the player height during slide
-    public float slideCooldown = 1.5f;            // Cooldown between slides
-    private bool isSliding = false;               // Currently sliding flag
-    private bool readyToSlide = true;             // Similar to readyToJump
-    private Vector3 slideDirection;               // Direction of the slide
-    private float slideTimer;                     // Track the current slide duration
+    public float slideForce = 400f;
+    public float slideDuration = 1.0f;
+    public float slideYScale = 0.4f;
+    public float slideCooldown = 1.5f;
+    private bool isSliding = false;
+    private bool readyToSlide = true;
+    private Vector3 slideDirection;
+    private float slideTimer;
+    public bool continueSlidingOnSlopes = true;
+    public float slopeSlideAcceleration = 5f;
+    public float maxSlopeSlideSpeed = 25f;
+    public float upSlopeSpeedReduction = 0.7f;
+    public float maxLaunchVelocity = 10f;
+    private bool isSlidingOnSlope = false;
+    private Vector3 previousSlopeNormal = Vector3.up;
+
 
     public Transform weaponHolder;
     public float t = 1f;
@@ -74,8 +82,8 @@ public class PlayerMovement1 : MonoBehaviour
     public Camera cam;
     private bool canDoubleJump = false;
     private bool wasGrounded = true;
-    public float coyoteTime = 0.15f;             // Time player can jump after leaving ground
-    private float coyoteTimeCounter;             // Counter for coyote time
+    public float coyoteTime = 0.15f;
+    private float coyoteTimeCounter;
 
     [Header("Crouching")]
     public float crouchSpeed;
@@ -84,7 +92,7 @@ public class PlayerMovement1 : MonoBehaviour
     private bool isCrouching = false;
     private float originalColliderHeight;
     private Vector3 originalColliderCenter;
-    public Transform modelTransform; // Assign this in inspector to your visual model
+    public Transform modelTransform;
 
     [Header("Keybinds")]
     public KeyCode jumpKey = KeyCode.Space;
@@ -116,8 +124,40 @@ public class PlayerMovement1 : MonoBehaviour
         sliding,
         air
     }
+    #endregion
 
+    #region Core Functions
     void Start()
+    {
+        InitializeVariables();
+        InitializeCameraEffects();
+    }
+
+    void Update()
+    {
+        CheckGroundedStatus();
+        HandleCoyoteTime();
+        DebugGravityStatus();
+        DebugMovementStatus();
+        CheckLanding();
+        HandleNearZeroVelocity();
+        HandleInput();
+        SpeedControl();
+        UpdateMovementState();
+        CheckForDoubleJumpBoots();
+        CheckIfBlocking();
+        UpdateDrag();
+    }
+
+    void FixedUpdate()
+    {
+        MovePlayer();
+        ApplySlopeDownforce();
+    }
+    #endregion
+
+    #region Initialization
+    private void InitializeVariables()
     {
         originalWalkSpeed = walkSpeed;
         originalSprintSpeed = sprintSpeed;
@@ -128,7 +168,7 @@ public class PlayerMovement1 : MonoBehaviour
         readyToSlide = true;
         cf = GetComponent<ConstantForce>();
         
-        // If modelTransform isn't assigned, use this transform (for backward compatibility)
+        // If modelTransform isn't assigned, use this transform
         if (modelTransform == null)
             modelTransform = transform;
             
@@ -137,6 +177,16 @@ public class PlayerMovement1 : MonoBehaviour
         originalColliderHeight = playerCollider.height;
         originalColliderCenter = playerCollider.center;
 
+        t = Time.deltaTime * fovTransitionSpeed;
+        
+        // Force to standing position
+        isCrouching = false;
+        isSliding = false;
+        ApplyStand();
+    }
+
+    private void InitializeCameraEffects()
+    {
         cameraEffects = cam.GetComponent<CameraEffects>();
         if (cameraEffects == null)
             cameraEffects = cam.gameObject.AddComponent<CameraEffects>();
@@ -147,26 +197,27 @@ public class PlayerMovement1 : MonoBehaviour
         cameraEffects.cameraLandDuration = cameraLandDuration;
         cameraEffects.effectSmoothness = jumpSmoothness;
         cameraEffects.maxTiltAngle = maxTiltAngle;
-
-        t = Time.deltaTime * fovTransitionSpeed;
-        
-        // Force to standing position
-        isCrouching = false;
-        isSliding = false;
-        ApplyStand();
     }
+    #endregion
 
-    void Update()
+    #region Status Checks
+    private void CheckGroundedStatus()
     {
-        // Use original ground detection
-        UnityEngine.Debug.Log($"Grounded Status:");
+        // Use ground detection
         float rayLength = (playerHeight * 0.3f);
-
         UnityEngine.Debug.DrawRay(capsuleTransform.position, Vector3.down * rayLength, Color.red);
         grounded = Physics.Raycast(capsuleTransform.position, Vector3.down, playerHeight * 0.35f, whatIsGround);
         UnityEngine.Debug.Log($"Grounded Status: {grounded}");
-    
-        // Handle coyote time - time where player can still jump after leaving a platform
+
+        // IMPORTANT FIX: If sliding and not grounded, ensure gravity is applied
+        if (isSliding && !grounded)
+        {
+            ApplyAirGravity();
+        }
+    }
+
+    private void HandleCoyoteTime()
+    {
         if (grounded)
         {
             coyoteTimeCounter = coyoteTime;
@@ -175,15 +226,20 @@ public class PlayerMovement1 : MonoBehaviour
         {
             coyoteTimeCounter -= Time.deltaTime;
         }
-    
-        // Debug info about gravity
+    }
+
+    private void DebugGravityStatus()
+    {
         bool isUsingGravity = rb.useGravity;
         if (isUsingGravity != wasUsingGravity)
         {
             UnityEngine.Debug.Log("Gravity status changed: " + (isUsingGravity ? "GRAVITY ON" : "GRAVITY OFF"));
             wasUsingGravity = isUsingGravity;
         }
+    }
 
+    private void DebugMovementStatus()
+    {
         // Debug info about constant force
         if (cf.force != lastCFForce)
         {
@@ -194,24 +250,28 @@ public class PlayerMovement1 : MonoBehaviour
         // Debug info about movement
         bool isMoving = (Mathf.Abs(horiziontalInput) > 0.01f || Mathf.Abs(verticalInput) > 0.01f);
         UnityEngine.Debug.Log("Movement status: " + (isMoving ? "MOVING" : "NOT MOVING"));
+    }
 
+    private void CheckLanding()
+    {
         if (!wasGrounded && grounded)
         {
             ApplyLandCamera();
         }
         wasGrounded = grounded;
+    }
 
+    private void HandleNearZeroVelocity()
+    {
+        // Apply extra gravity when velocity is near zero to prevent floating
         if (rb.velocity.y < 0.1f && rb.velocity.y > -0.1f)
         {
             rb.AddForce(Vector3.up * Physics.gravity.y * 1.5f, ForceMode.Acceleration);
         }
+    }
 
-        MyInput();
-        SpeedControl();
-        StateHandler();
-        CheckForDoubleJumpBoots();
-        CheckIfBlocking();
-
+    private void UpdateDrag()
+    {
         if (grounded)
         {
             rb.drag = groundDrag;
@@ -219,76 +279,6 @@ public class PlayerMovement1 : MonoBehaviour
         else
         {
             rb.drag = 0;
-        }
-    }
-
-    void FixedUpdate()
-    {
-        MovePlayer();
-        ApplySlopeDownforce();
-    }
-
-    // New method to apply extra downforce when moving downhill
-    private void ApplySlopeDownforce()
-    {
-        // Only apply when grounded
-        if (!grounded)
-            return;
-        
-        // Check if we're on a slope
-        if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, playerHeight * 0.5f + 0.3f, whatIsGround))
-        {
-            float angle = Vector3.Angle(Vector3.up, hit.normal);
-            
-            // Only apply on actual slopes (not flat ground)
-            if (angle > 5f && angle < maxSlopeAngle)
-            {
-                // Get movement direction relative to slope
-                Vector3 slopeDirection = Vector3.ProjectOnPlane(moveDirection, hit.normal).normalized;
-                
-                // Check if we're moving downhill
-                if (Vector3.Dot(slopeDirection, Vector3.down) > 0.1f)
-                {
-                    // Apply downforce ONLY when moving downhill, not uphill
-                    float downforceMagnitude = 50f;
-                    
-                    // Only cancel upward velocity, don't add downforce when jump is pressed
-                    if (rb.velocity.y > 0 && !Input.GetKey(jumpKey))
-                    {
-                        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-                    }
-                    else if (!Input.GetKey(jumpKey))
-                    {
-                        // Only apply downforce if not trying to jump
-                        rb.AddForce(Vector3.down * downforceMagnitude, ForceMode.Force);
-                    }
-                }
-            }
-        }
-        
-        // For sprinting, ONLY apply downforce when moving downhill, not uphill
-        if (grounded && state == MovementState.sprinting)
-        {
-            // Check direction relative to slope
-            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit slopeHit, playerHeight * 0.5f, whatIsGround))
-            {
-                Vector3 moveDir = orientation.forward * verticalInput + orientation.right * horiziontalInput;
-                moveDir = moveDir.normalized;
-                
-                // Project move direction onto slope
-                Vector3 slopeDir = Vector3.ProjectOnPlane(moveDir, slopeHit.normal).normalized;
-                
-                // If we're going downhill and not trying to jump
-                if (slopeDir.y < 0 && !Input.GetKey(jumpKey))
-                {
-                    // Add downforce and cancel upward velocity
-                    if (rb.velocity.y > 0)
-                    {
-                        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-                    }
-                    rb.AddForce(Vector3.down * 80f, ForceMode.Force);
-                }
-            }
         }
     }
 
@@ -350,11 +340,33 @@ public class PlayerMovement1 : MonoBehaviour
         wasBlocking = isBlocking;
     }
 
-    private void MyInput()
+    private void CheckForDoubleJumpBoots()
+    {
+        canDoubleJump = false;
+        foreach (Transform child in weaponHolder)
+        {
+            if (child.CompareTag("DoubleJump"))
+            {
+                canDoubleJump = true;
+                break;
+            }
+        }
+    }
+    #endregion
+
+    #region Input Handling
+    private void HandleInput()
     {
         horiziontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
 
+        HandleJumpInput();
+        HandleCrouchAndSlideInput();
+        HandleSlideExit();
+    }
+
+    private void HandleJumpInput()
+    {
         if (Input.GetKeyDown(jumpKey))
         {
             UnityEngine.Debug.Log($"Trying to jump and grounded: {grounded} and readyToJump: {readyToJump}");
@@ -375,8 +387,10 @@ public class PlayerMovement1 : MonoBehaviour
                 StartCoroutine(DoubleJumpWithDelay());
             }
         }
+    }
 
-        // Slide or Crouch handling
+    private void HandleCrouchAndSlideInput()
+    {
         // Check if sprint + crouch for slide, else just crouch
         bool isMovingFast = moveDirection.magnitude > 0.5f && Input.GetKey(sprintKey);
         
@@ -408,14 +422,424 @@ public class PlayerMovement1 : MonoBehaviour
                 isCrouching = true;
             }
         }
+    }
+
+    private void HandleSlideExit()
+    {
+        // Check if we're on a slope
+        bool onSlope = OnSlope();
         
-        // Exit slide if key is released or slide duration is over
-        if (isSliding && (Input.GetKeyUp(crouchKey) || slideTimer <= 0))
+        // Update slope sliding status
+        isSlidingOnSlope = isSliding && onSlope;
+        
+        // Exit slide if key is released and not on slope, or if slide timer is over and not on slope
+        if (isSliding && ((Input.GetKeyUp(crouchKey) && !onSlope) || (slideTimer <= 0 && !onSlope)))
         {
             StopSlide();
         }
+        // Continue slide on slopes if feature is enabled
+        else if (isSliding && slideTimer <= 0 && onSlope && continueSlidingOnSlopes)
+        {
+            // Refresh slide direction to follow the slope
+            AdjustSlideDirectionForSlope();
+        }
     }
+    #endregion
+
+    #region Movement State
+    private void UpdateMovementState()
+    {
+        // Update slide timer in StateHandler
+        if (isSliding)
+        {
+            UpdateSlideState();
+        }
+        else if (isCrouching)
+        {
+            state = MovementState.crouching;
+            moveSpeed = crouchSpeed;
+        }
+        else if (grounded && Input.GetKey(sprintKey))
+        {
+            state = MovementState.sprinting;
+            moveSpeed = sprintSpeed;
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 88, t);
+        }
+        else if (grounded)
+        {
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 80, t);
+            state = MovementState.walking;
+            moveSpeed = walkSpeed;
+        }
+        else
+        {
+            state = MovementState.air;
+        }
+    }
+
+    private void UpdateSlideState()
+    {
+        state = MovementState.sliding;
+        
+        // Check if we're on a slope
+        bool onSlope = OnSlope();
+        isSlidingOnSlope = isSliding && onSlope;
+        
+        // Update slide timer only if not on a slope
+        if (!onSlope)
+        {
+            slideTimer -= Time.deltaTime;
+        }
+        
+        // Set movement speed
+        if (isSlidingOnSlope)
+        {
+            // Speed is handled in HandleGroundedSlideMovement for slopes
+        }
+        else
+        {
+            // Normal slide speed
+            moveSpeed = sprintSpeed * 1.2f;
+            
+            // Gradual slowdown over time for flat ground
+            moveSpeed *= Mathf.Lerp(1.0f, 0.5f, 1 - (slideTimer / slideDuration));
+        }
+    }
+    #endregion
+
+    #region Movement Physics
+    private void MovePlayer()
+    {
+        // Calculate move direction (unless sliding)
+        if (!isSliding)
+        {
+            CalculateMoveDirection();
+            ApplyNormalMovement();
+        }
+        else
+        {
+            ApplySlideMovement();
+        }
+    }
+
+    private void CalculateMoveDirection()
+    {
+        moveDirection = orientation.forward * verticalInput + orientation.right * horiziontalInput;
+    }
+
+    private void ApplyNormalMovement()
+    {
+        // Simple fix for downhill bounce - check if we're on a slope and moving downhill
+        HandleDownhillMovement();
     
+        // Normal movement physics
+        rb.useGravity = !grounded;
+        
+        if (!grounded)
+        {
+            ApplyAirGravity();
+        }
+        else
+        {
+            cf.force = Vector3.zero;
+        }
+
+        // Normal ground or air movement
+        float currentMoveSpeed = grounded ? moveSpeed : moveSpeed * airMultiplier;
+        rb.AddForce(moveDirection.normalized * currentMoveSpeed * 10f, ForceMode.Force);
+    }
+
+    private void ApplyAirGravity(float? airGravity = null)
+    {
+        rb.useGravity = true;
+        float gravityToUse = airGravity ?? gravity;
+        cf.force = new Vector3(0, gravityToUse, 0);
+        UnityEngine.Debug.Log("Applying air gravity: " + gravityToUse);
+    }
+
+    private void HandleDownhillMovement()
+    {
+        if (grounded && Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, playerHeight * 0.5f, whatIsGround))
+        {
+            float angle = Vector3.Angle(Vector3.up, hit.normal);
+            if (angle > 5f) // Only on actual slopes, not tiny bumps
+            {
+                // Check if we're moving downhill
+                Vector3 forward = orientation.forward;
+                if (Vector3.Dot(forward, Vector3.ProjectOnPlane(Vector3.down, hit.normal)) > 0)
+                {
+                    // Going downhill - add strong downforce and zero out any upward velocity
+                    rb.AddForce(Vector3.down * 50f, ForceMode.Force);
+                    
+                    // Prevent upward velocity entirely
+                    if (rb.velocity.y > 0)
+                    {
+                        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+                    }
+                }
+            }
+        }
+    }
+
+    private void ApplySlideMovement()
+    {
+        // IMPORTANT FIX: Apply gravity when sliding in air
+        if (!grounded)
+        {
+            ApplyAirGravity(-25);
+            
+            // Limit upward velocity when in air to prevent extreme launches
+            if (rb.velocity.y > 10f)
+            {
+                rb.velocity = new Vector3(rb.velocity.x, 10f, rb.velocity.z);
+            }
+        }
+        else 
+        {
+            // On ground sliding behavior
+            HandleGroundedSlideMovement();
+        }
+        
+        // Apply force in slide direction
+        rb.AddForce(slideDirection * moveSpeed * 10f, ForceMode.Force);
+    }
+
+    private void HandleGroundedSlideMovement()
+    {
+        // Check if we need to update direction for slope
+        if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, playerHeight * 0.5f, whatIsGround))
+        {
+            float angle = Vector3.Angle(Vector3.up, hit.normal);
+            if (angle > 5f) // If we're on a slope
+            {
+                // Keep adjusting direction to follow the slope
+                slideDirection = Vector3.ProjectOnPlane(slideDirection, hit.normal).normalized;
+                
+                // Calculate downhill direction - the normalized projection of gravity onto the slope
+                Vector3 downhillDirection = Vector3.ProjectOnPlane(Vector3.down, hit.normal).normalized;
+                
+                // Blend current direction with downhill direction (bias toward downhill)
+                slideDirection = Vector3.Lerp(slideDirection, downhillDirection, 0.3f).normalized;
+                
+                // Add strong downforce to keep on slope - more force when going uphill
+                float downforceMagnitude = 60f;
+                rb.AddForce(Vector3.down * downforceMagnitude, ForceMode.Force);
+                
+                // Build momentum when sliding downhill
+                if (Vector3.Dot(slideDirection, downhillDirection) > 0.5f)
+                {
+                    // Add acceleration in the downhill direction
+                    rb.AddForce(downhillDirection * slopeSlideAcceleration, ForceMode.Acceleration);
+                    
+                    // Increase speed limit based on steepness
+                    moveSpeed = Mathf.Lerp(sprintSpeed * 1.2f, maxSlopeSlideSpeed, angle / maxSlopeAngle);
+                    
+                    UnityEngine.Debug.Log($"Downhill slide, speed: {moveSpeed}, angle: {angle}");
+                }
+                // Going uphill - prevent launches
+                else if (Vector3.Dot(slideDirection, downhillDirection) < -0.2f)
+                {
+                    // Cancel upward velocity to prevent launching
+                    if (rb.velocity.y > 0)
+                    {
+                        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+                    }
+                    
+                    // Add extra downforce when going uphill to prevent launch
+                    rb.AddForce(Vector3.down * 400f, ForceMode.Force);
+                    
+                    UnityEngine.Debug.Log("Uphill slide - applying launch prevention");
+                }
+            }
+        }
+    }
+
+    private void ApplySlopeDownforce()
+    {
+        // Only apply when grounded
+        if (!grounded)
+            return;
+        
+        ApplyDownforceOnSlope();
+        ApplySprintDownforceOnSlope();
+    }
+
+    private void ApplyDownforceOnSlope()
+    {
+        // Check if we're on a slope
+        if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, playerHeight * 0.5f + 0.3f, whatIsGround))
+        {
+            float angle = Vector3.Angle(Vector3.up, hit.normal);
+            
+            // Only apply on actual slopes (not flat ground)
+            if (angle > 5f && angle < maxSlopeAngle)
+            {
+                // Get movement direction relative to slope
+                Vector3 slopeDirection = Vector3.ProjectOnPlane(moveDirection, hit.normal).normalized;
+                
+                // Check if we're moving downhill
+                if (Vector3.Dot(slopeDirection, Vector3.down) > 0.1f)
+                {
+                    // Apply downforce ONLY when moving downhill, not uphill
+                    float downforceMagnitude = 50f;
+                    
+                    // Only cancel upward velocity, don't add downforce when jump is pressed
+                    if (rb.velocity.y > 0 && !Input.GetKey(jumpKey))
+                    {
+                        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+                    }
+                    else if (!Input.GetKey(jumpKey))
+                    {
+                        // Only apply downforce if not trying to jump
+                        rb.AddForce(Vector3.down * downforceMagnitude, ForceMode.Force);
+                    }
+                }
+            }
+        }
+    }
+
+    private void ApplySprintDownforceOnSlope()
+    {
+        // For sprinting, ONLY apply downforce when moving downhill, not uphill
+        if (grounded && state == MovementState.sprinting)
+        {
+            // Check direction relative to slope
+            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit slopeHit, playerHeight * 0.5f, whatIsGround))
+            {
+                Vector3 moveDir = orientation.forward * verticalInput + orientation.right * horiziontalInput;
+                moveDir = moveDir.normalized;
+                
+                // Project move direction onto slope
+                Vector3 slopeDir = Vector3.ProjectOnPlane(moveDir, slopeHit.normal).normalized;
+                
+                // If we're going downhill and not trying to jump
+                if (slopeDir.y < 0 && !Input.GetKey(jumpKey))
+                {
+                    // Add downforce and cancel upward velocity
+                    if (rb.velocity.y > 0)
+                    {
+                        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+                    }
+                    rb.AddForce(Vector3.down * 80f, ForceMode.Force);
+                }
+            }
+        }
+    }
+
+    private void SpeedControl()
+    {
+        if (isSliding)
+        {
+            ControlSlideSpeed();
+            return;
+        }
+        
+        // Handling slope speed
+        if (OnSlope() && !exitingSlope)
+        {
+            if (rb.velocity.magnitude > moveSpeed)
+            {
+                rb.velocity = rb.velocity.normalized * moveSpeed;
+            }
+        }
+        // Normal speed control
+        else
+        {
+            Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+
+            if (flatVel.magnitude > moveSpeed)
+            {
+                Vector3 limitedVel = flatVel.normalized * moveSpeed;
+                rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
+            }
+        }
+    }
+
+    private void ControlSlideSpeed()
+    {
+        // Calculate max speed - either from slope slide or normal slide
+        float slideMaxSpeed = isSlidingOnSlope ? moveSpeed : moveSpeed * 1.2f;
+        
+        if (OnSlope())
+        {
+            // Adjust max speed based on uphill/downhill
+            Vector3 slopeDir = Vector3.ProjectOnPlane(slideDirection, slopeHit.normal).normalized;
+            Vector3 downhillDir = Vector3.ProjectOnPlane(Vector3.down, slopeHit.normal).normalized;
+            float downhillAlignment = Vector3.Dot(slopeDir, downhillDir);
+            
+            if (downhillAlignment < 0)
+            {
+                // Going uphill, reduce max speed
+                slideMaxSpeed *= 0.7f;
+            }
+            else if (downhillAlignment > 0.7f)
+            {
+                // Going directly downhill, allow higher speed
+                slideMaxSpeed = moveSpeed;
+            }
+        }
+        
+        // Apply speed limit
+        Vector3 horizontalVelocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        if (horizontalVelocity.magnitude > slideMaxSpeed)
+        {
+            Vector3 limitedVelocity = horizontalVelocity.normalized * slideMaxSpeed;
+            rb.velocity = new Vector3(limitedVelocity.x, rb.velocity.y, limitedVelocity.z);
+        }
+    }
+    #endregion
+
+    #region Jump Functions
+    private void Jump()
+    {
+        exitingSlope = true;
+        cameraEffects.TriggerJumpEffect();
+
+        // Use a simple vertical jump with some forward direction
+        Vector3 jumpDirection = Vector3.up;
+        
+        // Add a bit of your look direction to the jump
+        if (moveDirection.magnitude > 0.1f)
+        {
+            // If you're moving, add some of that direction to the jump
+            Vector3 horizontalDir = new Vector3(moveDirection.x, 0f, moveDirection.z).normalized;
+            jumpDirection = (jumpDirection + horizontalDir * 0.3f).normalized;
+        }
+
+        // Reset vertical velocity
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        
+        // Apply the jump force
+        rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse);
+    }
+
+    private void ResetJump()
+    {
+        readyToJump = true;
+        exitingSlope = false;
+    }
+
+    private IEnumerator DoubleJumpWithDelay()
+    {
+        yield return new WaitForSeconds(doubleJumpDelay);
+        DoubleJump();
+    }
+
+    private void DoubleJump()
+    {
+        cameraEffects.TriggerJumpEffect();
+
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.AddForce(transform.up * doubleJumpForce, ForceMode.Impulse);
+    }
+
+    private void ApplyLandCamera()
+    {
+        cameraEffects.TriggerLandEffect();
+    }
+    #endregion
+
+    #region Crouch and Slide Functions
     private void ToggleCrouch()
     {
         isCrouching = !isCrouching;
@@ -503,6 +927,15 @@ public class PlayerMovement1 : MonoBehaviour
         slideDirection = orientation.forward * verticalInput + orientation.right * horiziontalInput;
         slideDirection = new Vector3(slideDirection.x, 0, slideDirection.z).normalized;
         
+        // Handle slope slide direction
+        AdjustSlideDirectionForSlope();
+        
+        // Apply initial force
+        rb.AddForce(slideDirection * slideForce, ForceMode.Impulse);
+    }
+
+    private void AdjustSlideDirectionForSlope()
+    {
         if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, playerHeight * 0.5f, whatIsGround))
         {
             float angle = Vector3.Angle(Vector3.up, hit.normal);
@@ -513,19 +946,20 @@ public class PlayerMovement1 : MonoBehaviour
                 slideDirection = Vector3.ProjectOnPlane(slideDirection, hit.normal).normalized;
             }
         }
-        
-        // Apply initial force
-        rb.AddForce(slideDirection * slideForce, ForceMode.Impulse);
     }
+
     private void StopSlide()
     {
         isSliding = false;
         
-        // DON'T immediately stand up - comment out this line:
-        // ApplyStand();
-        
-        // Instead, if we're still holding crouch key, go to crouch state
-        if (Input.GetKey(crouchKey))
+        // If we're in the air, ensure gravity is applied
+        if (!grounded)
+        {
+            ApplyAirGravity(-20);
+            state = MovementState.air;
+        }
+        // If we're still holding crouch key, go to crouch state
+        else if (Input.GetKey(crouchKey))
         {
             isCrouching = true;
         }
@@ -543,223 +977,5 @@ public class PlayerMovement1 : MonoBehaviour
     {
         readyToSlide = true;
     }
-
-    private void StateHandler()
-    {
-        // Update slide timer in StateHandler
-        if (isSliding)
-        {
-            slideTimer -= Time.deltaTime;
-            state = MovementState.sliding;
-            
-            // Slightly faster than sprint, but not too extreme
-            moveSpeed = sprintSpeed * 1.2f;
-            
-            // Gradual slowdown over time
-            moveSpeed *= Mathf.Lerp(1.0f, 0.5f, 1 - (slideTimer / slideDuration));
-            
-        }
-        else if (isCrouching)
-        {
-            state = MovementState.crouching;
-            moveSpeed = crouchSpeed;
-        }
-        else if (grounded && Input.GetKey(sprintKey))
-        {
-            state = MovementState.sprinting;
-            moveSpeed = sprintSpeed;
-            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 88, t);
-        }
-        else if (grounded)
-        {
-            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, 80, t);
-            state = MovementState.walking;
-            moveSpeed = walkSpeed;
-        }
-        else
-        {
-            state = MovementState.air;
-        }
-    }
-
-    private void MovePlayer()
-    {
-        // Calculate move direction (unless sliding)
-        if (!isSliding)
-        {
-            moveDirection = orientation.forward * verticalInput + orientation.right * horiziontalInput;
-        }
-        
-        // Special movement for sliding
-        if (isSliding)
-        {
-            // Check if we need to update direction for slope
-            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, playerHeight * 0.5f, whatIsGround))
-            {
-                float angle = Vector3.Angle(Vector3.up, hit.normal);
-                if (angle > 5f) // If we're on a slope
-                {
-                    // Keep adjusting direction to follow the slope
-                    slideDirection = Vector3.ProjectOnPlane(slideDirection, hit.normal).normalized;
-                    
-                    // Add strong downforce to keep on slope
-                    rb.AddForce(Vector3.down * 60f, ForceMode.Force);
-                }
-            }
-            
-            // Apply force in slide direction
-            rb.AddForce(slideDirection * moveSpeed * 10f, ForceMode.Force);
-        }
-        else
-        {
-            // Simple fix for downhill bounce - check if we're on a slope and moving downhill
-            if (grounded && Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, playerHeight * 0.5f, whatIsGround))
-            {
-                float angle = Vector3.Angle(Vector3.up, hit.normal);
-                if (angle > 5f) // Only on actual slopes, not tiny bumps
-                {
-                    // Check if we're moving downhill
-                    Vector3 forward = orientation.forward;
-                    if (Vector3.Dot(forward, Vector3.ProjectOnPlane(Vector3.down, hit.normal)) > 0)
-                    {
-                        // Going downhill - add strong downforce and zero out any upward velocity
-                        rb.AddForce(Vector3.down * 50f, ForceMode.Force);
-                        
-                        // Prevent upward velocity entirely
-                        if (rb.velocity.y > 0)
-                        {
-                            rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-                        }
-                    }
-                }
-            }
-        
-            // Normal movement physics
-            rb.useGravity = !grounded;
-            
-            if (!grounded)
-            {
-                cf.force = new Vector3(0, gravity, 0);
-            }
-            else
-            {
-                cf.force = Vector3.zero;
-            }
-
-            // Normal ground or air movement
-            float currentMoveSpeed = grounded ? moveSpeed : moveSpeed * airMultiplier;
-            rb.AddForce(moveDirection.normalized * currentMoveSpeed * 10f, ForceMode.Force);
-        }
-    }
-
-    private void SpeedControl()
-    {
-        if (isSliding)
-        {
-            // Allow higher speed during slide but still cap it
-            float slideMaxSpeed = moveSpeed * 1.2f;
-            
-            if (OnSlope())
-            {
-                // Adjust max speed based on uphill/downhill
-                Vector3 slopeDir = Vector3.ProjectOnPlane(slideDirection, slopeHit.normal).normalized;
-                if (slopeDir.y > 0)
-                {
-                    // Going uphill, reduce max speed
-                    slideMaxSpeed *= 0.8f;
-                }
-                else
-                {
-                    // Going downhill, increase max speed
-                    slideMaxSpeed *= 1.2f;
-                }
-            }
-            
-            if (rb.velocity.magnitude > slideMaxSpeed)
-            {
-                rb.velocity = rb.velocity.normalized * slideMaxSpeed;
-            }
-            return;
-        }
-        
-        // Handling slope speed
-        if (OnSlope() && !exitingSlope)
-        {
-            if (rb.velocity.magnitude > moveSpeed)
-            {
-                rb.velocity = rb.velocity.normalized * moveSpeed;
-            }
-        }
-        // Normal speed control
-        else
-        {
-            Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-
-            if (flatVel.magnitude > moveSpeed)
-            {
-                Vector3 limitedVel = flatVel.normalized * moveSpeed;
-                rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
-            }
-        }
-    }
-
-    private void Jump()
-    {
-        exitingSlope = true;
-        cameraEffects.TriggerJumpEffect();
-
-        // Use a simple vertical jump with some forward direction
-        Vector3 jumpDirection = Vector3.up;
-        
-        // Add a bit of your look direction to the jump
-        if (moveDirection.magnitude > 0.1f)
-        {
-            // If you're moving, add some of that direction to the jump
-            Vector3 horizontalDir = new Vector3(moveDirection.x, 0f, moveDirection.z).normalized;
-            jumpDirection = (jumpDirection + horizontalDir * 0.3f).normalized;
-        }
-
-        // Reset vertical velocity
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-        
-        // Apply the jump force
-        rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse);
-    }
-
-    private void ResetJump()
-    {
-        readyToJump = true;
-        exitingSlope = false;
-    }
-
-    void CheckForDoubleJumpBoots()
-    {
-        foreach (Transform child in weaponHolder)
-        {
-            if (child.CompareTag("DoubleJump"))
-            {
-                canDoubleJump = true;
-                break;
-            }
-        }
-    }
-
-    private IEnumerator DoubleJumpWithDelay()
-    {
-        yield return new WaitForSeconds(doubleJumpDelay);
-        DoubleJump();
-    }
-
-    private void DoubleJump()
-    {
-        cameraEffects.TriggerJumpEffect();
-
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-        rb.AddForce(transform.up * doubleJumpForce, ForceMode.Impulse);
-    }
-
-    private void ApplyLandCamera()
-    {
-        cameraEffects.TriggerLandEffect();
-    }
+    #endregion
 }
