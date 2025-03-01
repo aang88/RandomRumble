@@ -596,7 +596,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh-3998
+  m_Name: pb_Mesh-2080
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -3995,6 +3995,14 @@ MonoBehaviour:
   fallMultiplier: 2.5
   gravity: -15
   cf: {fileID: 219776534}
+  maxSlopeAngle: 40
+  slopeSlideSpeed: 10
+  useGravityOnSlopes: 1
+  downforceOnSlopes: 30
+  slideForce: 200
+  slideDuration: 1
+  slideYScale: 0.4
+  slideCooldown: 1.5
   weaponHolder: {fileID: 970508691}
   t: 0.5
   playerHeight: 4
@@ -4002,6 +4010,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1024
   cam: {fileID: 1482492030}
+  coyoteTime: 0.15
   crouchSpeed: 3
   crouchYScale: 0.5
   modelTransform: {fileID: 0}
@@ -4010,6 +4019,7 @@ MonoBehaviour:
   crouchKey: 306
   orientation: {fileID: 560477011}
   playerCollider: {fileID: 797403618}
+  fovTransitionSpeed: 3
   state: 0
 --- !u!54 &219776533
 Rigidbody:
@@ -5976,6 +5986,10 @@ PrefabInstance:
     - target: {fileID: 5436109811769089066, guid: b8d208750747921479f4399539271410, type: 3}
       propertyPath: m_Name
       value: Ramp
+      objectReference: {fileID: 0}
+    - target: {fileID: 5436109811769089066, guid: b8d208750747921479f4399539271410, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 5878405689018969728, guid: b8d208750747921479f4399539271410, type: 3}
       propertyPath: m_Mesh
@@ -9555,7 +9569,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 560477010}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.2267288, y: -0.16499984, z: -0.1398356}
+  m_LocalPosition: {x: 0.2267288, y: 0.19, z: -0.1398356}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11617,7 +11631,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh-3650
+  m_Name: pb_Mesh-1732
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -12149,6 +12163,10 @@ PrefabInstance:
     - target: {fileID: 5436109811769089066, guid: b8d208750747921479f4399539271410, type: 3}
       propertyPath: m_Name
       value: Prism (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5436109811769089066, guid: b8d208750747921479f4399539271410, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 5878405689018969728, guid: b8d208750747921479f4399539271410, type: 3}
       propertyPath: m_Mesh
@@ -16425,7 +16443,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 966616841}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.2267288, y: -0.46500003, z: -0.1398356}
+  m_LocalPosition: {x: 0.2267288, y: -0.11000013, z: -0.1398356}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -18556,7 +18574,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh-4636
+  m_Name: pb_Mesh-2718
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -19918,6 +19936,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Ramp
       objectReference: {fileID: 0}
+    - target: {fileID: 5436109811769089066, guid: b8d208750747921479f4399539271410, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 5878405689018969728, guid: b8d208750747921479f4399539271410, type: 3}
       propertyPath: m_Mesh
       value: 
@@ -20043,7 +20065,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1144140902}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 28.416763, y: 1.24, z: 20.42}
+  m_LocalPosition: {x: 28.416763, y: 1.46, z: 20.42}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -24081,7 +24103,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh-3350
+  m_Name: pb_Mesh-1432
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -36717,6 +36739,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Prism (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 5436109811769089066, guid: b8d208750747921479f4399539271410, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 5878405689018969728, guid: b8d208750747921479f4399539271410, type: 3}
       propertyPath: m_Mesh
       value: 
@@ -37052,7 +37078,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh-4058
+  m_Name: pb_Mesh-2140
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
