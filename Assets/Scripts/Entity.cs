@@ -4,8 +4,12 @@ using UnityEngine;
 
 public class Entity : MonoBehaviour
 {
-    [SerializeField] private float StartingHealth;
+    [SerializeField]
+     public float StartingHealth;
     private float health;
+
+    private int stockCount;
+
 
     public WeaponController weaponController;
 
@@ -19,11 +23,18 @@ public class Entity : MonoBehaviour
         {
             health = value;
             UnityEngine.Debug.Log(health);
+        }
+    }
 
-            if (health <= 0f)
-            {
-                Destroy(gameObject);
-            }
+    public int Stocks{
+        get
+        {
+            return stockCount;
+        }
+        set
+        {
+            stockCount = value;
+            UnityEngine.Debug.Log(stockCount);
         }
     }
 
