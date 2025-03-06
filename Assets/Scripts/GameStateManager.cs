@@ -15,8 +15,17 @@ public class GameStateManager : MonoBehaviour
         GameOver
     }
 
-    public RawImage winScreen;
+    float timeLeft = 10;
 
+    float startingTime = 10;
+
+    [Header("UI Elements")]
+    public RawImage winScreen;
+    public Text TimeLeftText;
+    public Text Health1;
+    public Text Health2;
+    public Text Rounds1;
+    public Text Rounds2;
     private GameState currentState = GameState.RoundStart;
     public Entity player1;
     public Entity player2;
@@ -37,9 +46,12 @@ public class GameStateManager : MonoBehaviour
         switch (currentState)
         {
             case GameState.RoundStart:
+                UpdateUIValues();
                 ResetRound();
                 break;
             case GameState.RoundPlaying:
+                CountDown();
+                UpdateUIValues();
                 if (CheckRoundEnd())  // Added missing parentheses
                 {
                     currentState = GameState.RoundEnd;
@@ -52,13 +64,14 @@ public class GameStateManager : MonoBehaviour
             case GameState.GameOver:
                 player1Movement.enabled = false;
                 ShowWinScreen();
+                HideText();
                 break;
         }
     }
 
     private bool CheckRoundEnd()
     {
-        if (player1.Health <= 0 || player2.Health <= 0)
+        if (player1.Health <= 0 || player2.Health <= 0 || timeLeft <= 0)  // Added '|| timeLeft <= 0'
         {
             return true;
         }
@@ -67,6 +80,7 @@ public class GameStateManager : MonoBehaviour
 
     public void ResetRound()
     {
+        timeLeft = startingTime;
         player1.Health = player1.StartingHealth;
         player2.Health = player2.StartingHealth;
 
@@ -82,6 +96,11 @@ public class GameStateManager : MonoBehaviour
         player1Movement.enabled = true;
         // player2Movement.enabled = true;
         currentState = GameState.RoundPlaying;
+    }
+
+
+    private void CountDown(){
+        timeLeft -= Time.deltaTime;
     }
 
     private Transform GetRootParent(Transform child)
@@ -161,6 +180,22 @@ public class GameStateManager : MonoBehaviour
             imageColor.a = 1; // Alpha = 1 (fully visible)
             winScreen.color = imageColor;
         }
+    }
+
+    public void UpdateUIValues(){
+        Health1.text = player1.Health.ToString();
+        Health2.text = player2.Health.ToString();
+        Rounds1.text = player1.Stocks.ToString();
+        Rounds2.text = player2.Stocks.ToString();
+        TimeLeftText.text = timeLeft.ToString("0");
+    }
+
+    public void HideText(){
+        Health1.text = "";
+        Health2.text = "";
+        Rounds1.text = "";
+        Rounds2.text = "";
+        TimeLeftText.text = "";
     }
 
 }
