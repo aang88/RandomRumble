@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+
 
 public class GameStateManager : MonoBehaviour
 {
@@ -12,6 +14,8 @@ public class GameStateManager : MonoBehaviour
         ItemPick,
         GameOver
     }
+
+    public RawImage winScreen;
 
     private GameState currentState = GameState.RoundStart;
     public Entity player1;
@@ -46,6 +50,8 @@ public class GameStateManager : MonoBehaviour
                 EndRound();
                 break;
             case GameState.GameOver:
+                player1Movement.enabled = false;
+                ShowWinScreen();
                 break;
         }
     }
@@ -67,7 +73,7 @@ public class GameStateManager : MonoBehaviour
         Transform player1Root = GetRootParent(player1.transform);
 
         player1Root.position = player1SpawnPoint.position;
-        player2.transform.position = player2SpawnPoint.position; //Change late for multiplayer
+        player2.GetComponent<Rigidbody>().position = player2SpawnPoint.position; //Change late for multiplayer
         
         // Force physics update
         Rigidbody rb1 = player1Root.GetComponent<Rigidbody>();
@@ -101,7 +107,7 @@ public class GameStateManager : MonoBehaviour
         // player2Movement.enabled = false;
 
          // Disable movement initially
-        player1Movement.enabled = false;
+      
         // player2Movement.enabled = false;
         
         // Start coroutine to enable movement after a short delay
@@ -146,4 +152,15 @@ public class GameStateManager : MonoBehaviour
             PlayerDied(player2);
         }
     }
+
+    public void ShowWinScreen()
+    {
+        if (winScreen != null)
+        {
+            Color imageColor = winScreen.color;
+            imageColor.a = 1; // Alpha = 1 (fully visible)
+            winScreen.color = imageColor;
+        }
+    }
+
 }
