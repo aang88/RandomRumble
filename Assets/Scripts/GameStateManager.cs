@@ -19,7 +19,7 @@ public class GameStateManager : MonoBehaviour
     public Transform player1SpawnPoint;  // Changed from 'transform' to 'Transform'
     public Transform player2SpawnPoint;  // Changed from 'transform' to 'Transform'
     public PlayerMovement1 player1Movement;
-    public PlayerMovement1 player2Movement;
+    // public PlayerMovement1 player2Movement;
 
     // Start is called before the first frame update
     void Start()
@@ -63,21 +63,46 @@ public class GameStateManager : MonoBehaviour
     {
         player1.Health = player1.StartingHealth;
         player2.Health = player2.StartingHealth;
-        player1.transform.position = player1SpawnPoint.position;
-        player2.transform.position = player2SpawnPoint.position;
+
+        Transform player1Root = GetRootParent(player1.transform);
+
+        player1Root.position = player1SpawnPoint.position;
+        player2.transform.position = player2SpawnPoint.position; //Change late for multiplayer
+        
+        // Force physics update
+        Rigidbody rb1 = player1Root.GetComponent<Rigidbody>();
+        player2.GetComponent<Rigidbody>().velocity = Vector3.zero;
+        
         player1Movement.enabled = true;
-        player2Movement.enabled = true;
+        // player2Movement.enabled = true;
         currentState = GameState.RoundPlaying;
+    }
+
+    private Transform GetRootParent(Transform child)
+    {
+        Transform current = child;
+        
+        // Go up until we find a Rigidbody or hit the root
+        while (current.parent != null)
+        {
+            if (current.GetComponent<Rigidbody>() != null)
+                return current;
+                
+            current = current.parent;
+        }
+        
+        // If no Rigidbody found in hierarchy, return the topmost parent
+        return current;
     }
 
     public void EndRound()
     {
         player1Movement.enabled = false;
-        player2Movement.enabled = false;
+        // player2Movement.enabled = false;
 
          // Disable movement initially
         player1Movement.enabled = false;
-        player2Movement.enabled = false;
+        // player2Movement.enabled = false;
         
         // Start coroutine to enable movement after a short delay
         StartCoroutine(EnableMovementAfterDelay(0.2f));
@@ -95,7 +120,7 @@ public class GameStateManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         player1Movement.enabled = true;
-        player2Movement.enabled = true;
+        // player2Movement.enabled = true;
     }
 
     public void PlayerDied(Entity player)
