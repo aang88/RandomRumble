@@ -3331,6 +3331,7 @@ MonoBehaviour:
   CanBlock: 1
   isBlocking: 0
   BlockCooldown: 1
+  BlockDuration: 0
   isPlayer: 0
   collisionDetection: {fileID: 1621679077}
 --- !u!43 &166721920
@@ -17238,6 +17239,7 @@ MonoBehaviour:
   CanBlock: 1
   isBlocking: 0
   BlockCooldown: 1
+  BlockDuration: 0
   isPlayer: 1
   collisionDetection: {fileID: 1667104221}
 --- !u!114 &970508693

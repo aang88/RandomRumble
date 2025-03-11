@@ -37,21 +37,9 @@ public class CollisionDetection : MonoBehaviour
             Instantiate(HitParticle, new Vector3(other.transform.position.x, 
                 transform.position.y, other.transform.position.z), 
                 other.transform.rotation);
+            
 
-
-            WeaponController enemyWeaponController = enemy.weaponController;
-
-            if (enemyWeaponController.IsBlocking())
-            {
-                enemy.Health -= Damage / 2;
-                UnityEngine.Debug.Log("DAMAGE BLOCKED!");
-            }
-            else
-            {
-                enemy.Health -= Damage;
-                UnityEngine.Debug.Log("FULL DAMAGE!");
-            }
-
+            enemy.takeDamage(Damage);
 
             GetComponent<Collider>().enabled = false;
 

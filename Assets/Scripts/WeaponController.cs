@@ -17,6 +17,14 @@ public class WeaponController : MonoBehaviour
     public bool CanBlock = true;
     public bool isBlocking = false;
     public float BlockCooldown = 1.0f;
+    
+    public float ParryCooldown = 0f;
+
+    public bool CanParry = false;
+
+    public float LastBlockTime = 0f;
+
+    public float BlockDuration = 0f;
 
     public bool isPlayer;
     
@@ -25,7 +33,7 @@ public class WeaponController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
+        ParryCooldown = BlockCooldown + 0.5f;
     }
 
     // Update is called once per frame
@@ -33,6 +41,7 @@ public class WeaponController : MonoBehaviour
     {
         if(isPlayer == true)
         {
+            CheckBlocktime();
             if (Input.GetMouseButtonDown(0))
             {
                 if (CanAttack && !isBlocking)
@@ -43,8 +52,11 @@ public class WeaponController : MonoBehaviour
 
             if (Input.GetMouseButton(1))
             {
+                // UnityEngine.Debug.Log(BlockDuration);
                 if (CanBlock && !isAttacking)
                 {
+                    LastBlockTime = Time.time;
+                    BlockDuration += Time.deltaTime;
                     Block();
                 }
             }
@@ -53,6 +65,7 @@ public class WeaponController : MonoBehaviour
             {
                 isBlocking = false;
                 CanBlock = false;
+                BlockDuration = 0f; 
                 Animator anim = Meele.GetComponent<Animator>();
                 anim.SetBool("IsBlocking", false);
                 StartCoroutine(ResetBlockCooldown());
@@ -66,6 +79,19 @@ public class WeaponController : MonoBehaviour
             MeeleAttack();
         }
     }
+
+    public void CheckBlocktime()
+    {
+        if (Time.time - LastBlockTime > ParryCooldown)
+        {
+            CanParry = true;
+        }
+        else
+        {
+            UnityEngine.Debug.Log(Time.time - LastBlockTime);
+            CanParry = false;
+        }
+    }   
 
     public void MeeleAttack()
     {
@@ -85,6 +111,11 @@ public class WeaponController : MonoBehaviour
         isBlocking = true;
         Animator anim = Meele.GetComponent<Animator>();
         anim.SetBool("IsBlocking", true);
+    }
+
+    public bool SuccessfulParry()
+    {
+        return BlockDuration >= 0.5f && CanParry;
     }
 
     public bool IsBlocking()

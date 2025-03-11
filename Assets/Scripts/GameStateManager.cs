@@ -15,9 +15,9 @@ public class GameStateManager : MonoBehaviour
         GameOver
     }
 
-    float timeLeft = 10;
+    float timeLeft = 40;
 
-    float startingTime = 10;
+    float startingTime = 40;
 
     [Header("UI Elements")]
     public RawImage winScreen;

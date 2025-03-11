@@ -24,7 +24,7 @@ public class DamageGun : MonoBehaviour
             if (hitInfo.collider.gameObject.TryGetComponent(out Entity enemy))
             {
                 UnityEngine.Debug.Log("Hit!");
-                enemy.Health -= damage;
+                enemy.takeDamage(damage);
             }
         }
     }
