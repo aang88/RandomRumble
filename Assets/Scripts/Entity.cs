@@ -8,7 +8,12 @@ public class Entity : MonoBehaviour
      public float StartingHealth;
     private float health;
 
+    private bool parried;
+
+    public Camera camera;
+
     private int stockCount;
+    public Freezer freezer;
 
 
     public WeaponController weaponController;
@@ -23,6 +28,19 @@ public class Entity : MonoBehaviour
         {
             health = value;
             UnityEngine.Debug.Log(health);
+        }
+    }
+
+
+    public bool Parried
+    {
+        get
+        {
+            return parried;
+        }
+        set
+        {
+            parried = value;
         }
     }
 
@@ -43,16 +61,24 @@ public class Entity : MonoBehaviour
         if (weaponController.IsBlocking() && !weaponController.SuccessfulParry())
         {
             Health -= damage / 2;
-            UnityEngine.Debug.Log("DAMAGE BLOCKED!");
+            UnityEngine.Debug.Log("HIT: DAMAGE BLOCKED!");
         }
         else if (weaponController.IsBlocking() && weaponController.SuccessfulParry())
         {
-            UnityEngine.Debug.Log("PARRY!");
+            parried = true;
+            UnityEngine.Debug.Log("HIT: PARRY!");
+            StartCoroutine(freezer.Freeze());
+            CameraEffects cameraEffects = Camera.main.GetComponent<CameraEffects>();
+            if (cameraEffects != null)
+            {
+                cameraEffects.TriggerScreenShake();
+            }
+            // UnityEngine.Debug.Log("HIT: PARRY!");
         }
         else
         {
             Health -= damage;
-            UnityEngine.Debug.Log("FULL DAMAGE!");
+            UnityEngine.Debug.Log("HIT:  FULL DAMAGE!");
         }
     }
 

@@ -16,11 +16,11 @@ public class WeaponController : MonoBehaviour
 
     public bool CanBlock = true;
     public bool isBlocking = false;
-    public float BlockCooldown = 1.0f;
+    public float BlockCooldown = 0f;
     
     public float ParryCooldown = 0f;
 
-    public bool CanParry = false;
+    public bool CanParry = true;
 
     public float LastBlockTime = 0f;
 
@@ -33,7 +33,19 @@ public class WeaponController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        ParryCooldown = BlockCooldown + 0.5f;
+        // ParryCooldown = BlockCooldown + 0.5f;
+        ParryCooldown =  0f;
+        Animator anim = Meele.GetComponent<Animator>();
+        AnimationClip[] clips = anim.runtimeAnimatorController.animationClips;
+        foreach (AnimationClip clip in clips)
+        {
+            if (clip.name == "SwordAttack") 
+            {
+                AttackCooldown = clip.length;
+                AttackWindow = clip.length;
+                break;
+            }
+        }
     }
 
     // Update is called once per frame
@@ -88,18 +100,22 @@ public class WeaponController : MonoBehaviour
         }
         else
         {
-            UnityEngine.Debug.Log(Time.time - LastBlockTime);
+            //  UnityEngine.Debug.Log(Time.time - LastBlockTime);
             CanParry = false;
         }
     }   
 
     public void MeeleAttack()
     {
+        if (isAttacking){
+            return;
+        }
         isAttacking = true;
         collisionDetection.ResetHit();
         CanAttack = false;
         Animator anim = Meele.GetComponent<Animator>();
         anim.SetTrigger("Attack");
+        
        // AudioSource ac = GetComponent<AudioSource>();
 
        // ac.PlayOneShot(WeaponAttackSound);
@@ -114,8 +130,9 @@ public class WeaponController : MonoBehaviour
     }
 
     public bool SuccessfulParry()
-    {
-        return BlockDuration >= 0.5f && CanParry;
+    {   
+        UnityEngine.Debug.Log("HIT: " + CanParry);
+        return BlockDuration <= 1.5f && CanParry;
     }
 
     public bool IsBlocking()

@@ -12,6 +12,12 @@ public class CameraEffects : MonoBehaviour
     public float tileSmoothness = 5f;
     public float maxTiltAngle = 15f;
 
+    [Header("Screen Shake Settings")]
+    public float shakeDuration = 0.5f;
+    public float shakeMagnitude = 0.5f;
+
+    
+
     // Private variables
     private float currentPitchOffset = 0f;
     private float targetPitchOffset = 0f;
@@ -22,6 +28,8 @@ public class CameraEffects : MonoBehaviour
 
     // Animation state tracking
     private Coroutine currentAnimation = null;
+    private Coroutine shakeCoroutine = null;
+
 
     void Start()
     {
@@ -165,6 +173,35 @@ public class CameraEffects : MonoBehaviour
         // Don't set directly to zero - let the smooth update handle it
         targetPitchOffset = 0f;
         currentAnimation = null;
+    }
+
+    public void TriggerScreenShake()
+    {
+        if (shakeCoroutine != null)
+            StopCoroutine(shakeCoroutine);
+
+        shakeCoroutine = StartCoroutine(ScreenShakeCoroutine());
+    }
+
+    private IEnumerator ScreenShakeCoroutine()
+    {
+        Vector3 originalPosition = cam.transform.localPosition;
+        float elapsed = 0.0f;
+
+        while (elapsed < shakeDuration)
+        {
+            float x = Random.Range(-1f, 1f) * shakeMagnitude;
+            float y = Random.Range(-1f, 1f) * shakeMagnitude;
+
+            cam.transform.localPosition = new Vector3(originalPosition.x + x, originalPosition.y + y, originalPosition.z);
+
+            elapsed += Time.unscaledDeltaTime;
+
+            yield return null;
+        }
+
+        cam.transform.localPosition = originalPosition;
+        shakeCoroutine = null;
     }
 
     private IEnumerator LandEffectCoroutine()

@@ -32,19 +32,36 @@ public class CollisionDetection : MonoBehaviour
                 return;
             }
             hasHit = true;
-            other.GetComponent<Animator>().SetTrigger("Hit");
+            Animator otherAnim = other.GetComponent<Animator>();
+            if (otherAnim != null)
+            {
+                otherAnim.SetTrigger("Hit");
+            }
             other.TryGetComponent(out Entity enemy);
-            Instantiate(HitParticle, new Vector3(other.transform.position.x, 
-                transform.position.y, other.transform.position.z), 
-                other.transform.rotation);
+            // Instantiate(HitParticle, new Vector3(other.transform.position.x, 
+            //     transform.position.y, other.transform.position.z), 
+            //     other.transform.rotation);
             
 
             enemy.takeDamage(Damage);
+
+            if (enemy.Parried)
+            {
+                // DisableWeapon();
+                enemy.Parried = false;
+            }
 
             GetComponent<Collider>().enabled = false;
 
 
         }
+    }
+
+    public void DisableWeapon(){
+        wp.isAttacking = false;
+
+        wp.isBlocking = false;
+      
     }
 
     public void ResetHit()
