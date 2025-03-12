@@ -30,6 +30,14 @@ public class CameraEffects : MonoBehaviour
     private Coroutine currentAnimation = null;
     private Coroutine shakeCoroutine = null;
 
+    [Header("Flash Settings")]
+    public float flashDuration = 0.15f;
+    public Color flashColor = Color.white;
+    // Fix the animation curve initialization
+    public AnimationCurve flashCurve;
+    private Material flashMaterial;
+    private Coroutine flashCoroutine = null;
+
 
     void Start()
     {
@@ -39,6 +47,24 @@ public class CameraEffects : MonoBehaviour
             cam = Camera.main;
 
         lastPosition = transform.position;
+
+        if (flashCurve.keys.Length == 0)
+        {
+            flashCurve = new AnimationCurve(
+                new Keyframe(0, 1),
+                new Keyframe(1, 0)
+            );
+            flashCurve.preWrapMode = WrapMode.ClampForever;
+            flashCurve.postWrapMode = WrapMode.ClampForever;
+        }
+
+        flashMaterial = new Material(Shader.Find("Hidden/Internal-Colored"));
+        flashMaterial.hideFlags = HideFlags.HideAndDontSave;
+        flashMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        flashMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        flashMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+        flashMaterial.SetInt("_ZWrite", 0);
+        flashMaterial.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);
     }
 
     void Update()
@@ -71,14 +97,25 @@ public class CameraEffects : MonoBehaviour
         // Get current rotation
         Vector3 rotation = cam.transform.localEulerAngles;
 
-        // Apply our effects (pitch offset from jumping/landing and roll from movement)
-        // We handle pitch (X) and roll (Z) but leave yaw (Y) alone
-        // This preserves the player's ability to look around
-        cam.transform.localEulerAngles = new Vector3(
-            ClampAngle(rotation.x + currentPitchOffset),
-            rotation.y,
-            currentTiltAngle
-        );
+        // Calculate new rotation values with NaN checking
+        float newPitch = ClampAngle(rotation.x + currentPitchOffset);
+        float newYaw = rotation.y;
+        float newRoll = currentTiltAngle;
+
+        // Check for NaN values
+        if (float.IsNaN(newPitch) || float.IsInfinity(newPitch)) newPitch = rotation.x;
+        if (float.IsNaN(newYaw) || float.IsInfinity(newYaw)) newYaw = rotation.y;
+        if (float.IsNaN(newRoll) || float.IsInfinity(newRoll)) newRoll = 0f;
+
+        // Apply our effects only if they're valid
+        try {
+            cam.transform.localEulerAngles = new Vector3(newPitch, newYaw, newRoll);
+        }
+        catch (System.Exception e) {
+            Debug.LogWarning("Failed to set camera rotation: " + e.Message);
+            // Reset to safe values
+            cam.transform.localEulerAngles = rotation;
+        }
     }
 
     // Helper function to properly handle angle wrapping
@@ -183,21 +220,108 @@ public class CameraEffects : MonoBehaviour
         shakeCoroutine = StartCoroutine(ScreenShakeCoroutine());
     }
 
+    public void TriggerFlash()
+    {
+        if (flashCoroutine != null)
+            StopCoroutine(flashCoroutine);
+            
+        flashCoroutine = StartCoroutine(FlashCoroutine());
+    }
+
+
+    private IEnumerator FlashCoroutine()
+    {
+        // Flash parameters
+        float holdTime = 0.05f;        // Time to hold the full flash
+        float fadeOutTime = 0.1f;      // Time for fade out
+        float maxOpacity = 0.7f;       // Set maximum opacity to 70%
+        
+        // Hold phase - flash at 70% opacity
+        for (int i = 0; i < 5; i++) // Draw for multiple frames to ensure it's visible
+        {
+            yield return new WaitForEndOfFrame();
+            
+            // Draw the flash at 70% opacity
+            GL.PushMatrix();
+            GL.LoadOrtho();
+            flashMaterial.SetColor("_Color", new Color(flashColor.r, flashColor.g, flashColor.b, maxOpacity));
+            flashMaterial.SetPass(0);
+            GL.Begin(GL.QUADS);
+            GL.Vertex3(0, 0, 0);
+            GL.Vertex3(0, 1, 0);
+            GL.Vertex3(1, 1, 0);
+            GL.Vertex3(1, 0, 0);
+            GL.End();
+            GL.PopMatrix();
+        }
+        
+        // Wait for the hold time
+        yield return new WaitForSecondsRealtime(holdTime);
+        
+        // Fade-out phase
+        float elapsed = 0;
+        while (elapsed < fadeOutTime)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float normalizedTime = elapsed / fadeOutTime;
+            
+            // Smooth step gives a nicer fade out curve
+            // Start from maxOpacity instead of 1.0
+            float alpha = Mathf.SmoothStep(maxOpacity, 0f, normalizedTime);
+            
+            yield return new WaitForEndOfFrame();
+            
+            // Draw the flash with decreasing alpha
+            GL.PushMatrix();
+            GL.LoadOrtho();
+            flashMaterial.SetColor("_Color", new Color(flashColor.r, flashColor.g, flashColor.b, alpha));
+            flashMaterial.SetPass(0);
+            GL.Begin(GL.QUADS);
+            GL.Vertex3(0, 0, 0);
+            GL.Vertex3(0, 1, 0);
+            GL.Vertex3(1, 1, 0);
+            GL.Vertex3(1, 0, 0);
+            GL.End();
+            GL.PopMatrix();
+        }
+        
+        flashCoroutine = null;
+    }
+
+    // Add this OnDisable method to clean up materials
+    void OnDisable()
+    {
+        if (flashMaterial != null)
+            DestroyImmediate(flashMaterial);
+    }
+
+
     private IEnumerator ScreenShakeCoroutine()
     {
         Vector3 originalPosition = cam.transform.localPosition;
         float elapsed = 0.0f;
-
+        
+        // Use a smoother shake pattern
         while (elapsed < shakeDuration)
         {
-            float x = Random.Range(-1f, 1f) * shakeMagnitude;
-            float y = Random.Range(-1f, 1f) * shakeMagnitude;
+            // Use smoother random values with Perlin noise
+            float time = Time.unscaledTime;
+            // Perlin noise gives values between 0-1, so we adjust to -0.5 to 0.5 range and multiply by magnitude
+            float x = (Mathf.PerlinNoise(time * 10, 0) - 0.5f) * shakeMagnitude * 0.6f;
+            float y = (Mathf.PerlinNoise(0, time * 10) - 0.5f) * shakeMagnitude * 0.6f;
 
-            cam.transform.localPosition = new Vector3(originalPosition.x + x, originalPosition.y + y, originalPosition.z);
+            // Apply with a smooth falloff as the shake ends
+            float dampingFactor = 1f - (elapsed / shakeDuration);
+            dampingFactor = dampingFactor * dampingFactor; // Square for a smoother falloff curve
+            
+            cam.transform.localPosition = new Vector3(
+                originalPosition.x + x * dampingFactor, 
+                originalPosition.y + y * dampingFactor, 
+                originalPosition.z
+            );
 
             elapsed += Time.unscaledDeltaTime;
-
-            yield return null;
+            yield return new WaitForSecondsRealtime(0.01f); // More consistent timing
         }
 
         cam.transform.localPosition = originalPosition;

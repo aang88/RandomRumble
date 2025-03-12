@@ -131,7 +131,6 @@ public class WeaponController : MonoBehaviour
 
     public bool SuccessfulParry()
     {   
-        UnityEngine.Debug.Log("HIT: " + CanParry);
         return BlockDuration <= 1.5f && CanParry;
     }
 
