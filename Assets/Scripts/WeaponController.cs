@@ -131,7 +131,7 @@ public class WeaponController : MonoBehaviour
 
     public bool SuccessfulParry()
     {   
-        return BlockDuration <= 1.5f && CanParry;
+        return BlockDuration <= 0.2f && CanParry;
     }
 
     public bool IsBlocking()
