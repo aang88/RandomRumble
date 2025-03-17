@@ -563,6 +563,7 @@ GameObject:
   - component: {fileID: 4925201814354678423}
   - component: {fileID: 2453454257251828845}
   - component: {fileID: -2496881582064209649}
+  - component: {fileID: -450853221178957628}
   m_Layer: 0
   m_Name: Player
   m_TagString: Enemy
@@ -713,6 +714,8 @@ MonoBehaviour:
   NetworkBehaviours:
   - {fileID: 7612949762535379901}
   - {fileID: 2453454257251828845}
+  - {fileID: -2496881582064209649}
+  - {fileID: 7612949761937802349}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -801,10 +804,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfc0147b611361e4fb948eca2e0a06e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 2
+  _addedNetworkObject: {fileID: 4925201814354678423}
+  _networkObjectCache: {fileID: 4925201814354678423}
   StartingHealth: 100
   camera: {fileID: 0}
   freezer: {fileID: 0}
   weaponController: {fileID: 7612949762858392637}
+--- !u!114 &-450853221178957628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7612949762535379899}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f251c9608b70d4648850f390cefa3416, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 0}
+  _networkObjectCache: {fileID: 0}
 --- !u!1 &7612949762858392635
 GameObject:
   m_ObjectHideFlags: 0
@@ -1211,6 +1232,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea6c90cf4c66e16458411dc1383ee5c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _componentIndexCache: 3
+  _addedNetworkObject: {fileID: 4925201814354678423}
+  _networkObjectCache: {fileID: 4925201814354678423}
   damage: 100
   bulletRange: 99999
   playerCamera: {fileID: 7612949761273126357}
