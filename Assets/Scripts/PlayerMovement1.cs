@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Security.Cryptography;
+using FishNet.Object;
 using UnityEngine;
 
-public class PlayerMovement1 : MonoBehaviour
+public class PlayerMovement1 : NetworkBehaviour
 {
     #region Variables
     [Header("Movement")]
@@ -127,14 +128,39 @@ public class PlayerMovement1 : MonoBehaviour
     #endregion
 
     #region Core Functions
-    void Start()
+    public override void OnStartNetwork()
     {
+        UnityEngine.Debug.Log("Initializing player");
+        base.OnStartNetwork();
+
+        if (IsServer)
+        {
+            Entity playerEntity = GetComponent<Entity>();
+            if (playerEntity != null)
+            {
+                UnityEngine.Debug.Log("Attempting to add a player: " + playerEntity);
+                GameStateManager.Instance.AddPlayer(playerEntity);
+            }
+            else
+            {
+                UnityEngine.Debug.LogWarning("Player Entity is missing from the GameObject!");
+            }
+        }
+
+        if (!base.Owner.IsLocalClient)
+        {
+         
+            cam.gameObject.SetActive(false); // Disable camera for other players
+            return;
+        }
+
         InitializeVariables();
         InitializeCameraEffects();
     }
 
     void Update()
     {
+        if (!base.IsOwner) return; // Prevent input handling for non-local players
         CheckGroundedStatus();
         HandleCoyoteTime();
         DebugGravityStatus();
@@ -151,6 +177,7 @@ public class PlayerMovement1 : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (!base.IsOwner) return; // Prevent input handling for non-local players
         MovePlayer();
         ApplySlopeDownforce();
     }
@@ -207,7 +234,7 @@ public class PlayerMovement1 : MonoBehaviour
         float rayLength = (playerHeight * 0.3f);
         UnityEngine.Debug.DrawRay(capsuleTransform.position, Vector3.down * rayLength, Color.red);
         grounded = Physics.Raycast(capsuleTransform.position, Vector3.down, playerHeight * 0.35f, whatIsGround);
-        UnityEngine.Debug.Log($"Grounded Status: {grounded}");
+        //UnityEngine.Debug.Log($"Grounded Status: {grounded}");
 
         // IMPORTANT FIX: If sliding and not grounded, ensure gravity is applied
         if (isSliding && !grounded)
@@ -249,7 +276,7 @@ public class PlayerMovement1 : MonoBehaviour
 
         // Debug info about movement
         bool isMoving = (Mathf.Abs(horiziontalInput) > 0.01f || Mathf.Abs(verticalInput) > 0.01f);
-        UnityEngine.Debug.Log("Movement status: " + (isMoving ? "MOVING" : "NOT MOVING"));
+        //UnityEngine.Debug.Log("Movement status: " + (isMoving ? "MOVING" : "NOT MOVING"));
     }
 
     private void CheckLanding()
@@ -296,7 +323,7 @@ public class PlayerMovement1 : MonoBehaviour
             // Check if slope is within walkable angle
             bool isWalkableSlope = angle < maxSlopeAngle && angle > 1.0f;
             
-            UnityEngine.Debug.Log($"Slope Detection - Angle: {angle}, Walkable: {isWalkableSlope}");
+           // UnityEngine.Debug.Log($"Slope Detection - Angle: {angle}, Walkable: {isWalkableSlope}");
             
             return isWalkableSlope;
         }

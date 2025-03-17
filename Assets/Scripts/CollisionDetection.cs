@@ -22,16 +22,16 @@ public class CollisionDetection : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         UnityEngine.Debug.Log("Gelo Trigger with: " + other.name + ", Tag: " + other.tag);
-        
+
         // First verify that wp exists
         if (wp == null)
         {
             UnityEngine.Debug.LogError("WeaponController reference is missing on CollisionDetection");
             return;
         }
-       
+
         // Check if we can hit based on cooldown AND make sure we haven't hit this specific collider
-        if (other.tag == "Enemy" && wp.isAttacking && !hasHit && 
+        if (other.tag == "Enemy" && wp.isAttacking && !hasHit &&
             Time.time > lastHitTime + hitCooldown && !hitColliders.Contains(other))
         {
             // UnityEngine.Debug.Log("Trigger with: " + other.name + ", Tag: " + other.tag);
@@ -40,25 +40,32 @@ public class CollisionDetection : MonoBehaviour
                 UnityEngine.Debug.Log("Same Trigger with: " + other.name + ", Tag: " + other.tag);
                 return;
             }
-            
+
             hasHit = true;
             lastHitTime = Time.time; // Record this hit time
             hitColliders.Add(other); // Record this collider as hit
-            
+
             // Get the Animator component safely
             Animator otherAnim = other.GetComponent<Animator>();
             if (otherAnim != null)
             {
                 otherAnim.SetTrigger("Hit");
             }
-            
+
             // Safely get the Entity component
             Entity enemy = null;
             if (other.TryGetComponent(out enemy))
             {
-                // Only call takeDamage if enemy is not null
-                enemy.takeDamage(Damage);
-                
+                // Only call TakeDamageServerRpc if enemy is not null and is a networked object
+                if (enemy.IsOwner)
+                {
+                    enemy.TakeDamageServerRpc(Damage);  // Call the ServerRpc for damage
+                }
+                else
+                {
+                    enemy.TakeDamage(Damage);  // If it's not a networked object, just call directly
+                }
+
                 if (enemy.Parried)
                 {
                     // DisableWeapon();
@@ -69,7 +76,7 @@ public class CollisionDetection : MonoBehaviour
             {
                 UnityEngine.Debug.LogWarning("No Entity component found on " + other.name);
             }
-            
+
             // Safely disable collider
             Collider col = GetComponent<Collider>();
             if (col != null)
@@ -79,7 +86,8 @@ public class CollisionDetection : MonoBehaviour
         }
     }
 
-    public void DisableWeapon(){
+    public void DisableWeapon()
+    {
         wp.isAttacking = false;
         wp.isBlocking = false;
     }

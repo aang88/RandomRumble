@@ -1,21 +1,19 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using FishNet.Object;
 using UnityEngine;
 
-public class Entity : MonoBehaviour
+public class Entity : NetworkBehaviour
 {
     [SerializeField]
-     public float StartingHealth;
+    public float StartingHealth;
     private float health;
 
     private bool parried;
 
     public Camera camera;
-
     private int stockCount;
     public Freezer freezer;
-
-
     public WeaponController weaponController;
 
     public float Health
@@ -31,24 +29,15 @@ public class Entity : MonoBehaviour
         }
     }
 
-
     public bool Parried
     {
-        get
-        {
-            return parried;
-        }
-        set
-        {
-            parried = value;
-        }
+        get { return parried; }
+        set { parried = value; }
     }
 
-    public int Stocks{
-        get
-        {
-            return stockCount;
-        }
+    public int Stocks
+    {
+        get { return stockCount; }
         set
         {
             stockCount = value;
@@ -56,9 +45,15 @@ public class Entity : MonoBehaviour
         }
     }
 
-    public void takeDamage(float damage)
+    // Call this from the client to apply damage on the server
+    [ServerRpc(RequireOwnership = false)]
+    public void TakeDamageServerRpc(float damage)
     {
-        // First check if weaponController exists
+        TakeDamage(damage); // Apply damage logic on the server
+    }
+
+    public void TakeDamage(float damage)
+    {
         if (weaponController == null)
         {
             UnityEngine.Debug.LogError("weaponController is null on " + gameObject.name);
@@ -77,8 +72,7 @@ public class Entity : MonoBehaviour
             {
                 parried = true;
                 UnityEngine.Debug.Log("HIT: PARRY!");
-                
-                // Check if freezer exists before using it
+
                 if (freezer != null)
                 {
                     StartCoroutine(freezer.Freeze());
@@ -87,8 +81,6 @@ public class Entity : MonoBehaviour
                 {
                     UnityEngine.Debug.LogWarning("Freezer component is missing on " + gameObject.name);
                 }
-                
-                // Safely get camera effects
 
                 if (camera != null)
                 {
@@ -117,7 +109,6 @@ public class Entity : MonoBehaviour
         catch (System.Exception e)
         {
             UnityEngine.Debug.LogError("Error in takeDamage: " + e.Message);
-            // Default damage if exception
             Health -= damage;
         }
     }
@@ -125,5 +116,6 @@ public class Entity : MonoBehaviour
     void Start()
     {
         Health = StartingHealth;
+        UnityEngine.Debug.Log("Entity Start() called: " + gameObject.name + " - StartingHealth: " + StartingHealth + " - Health: " + Health);
     }
 }
