@@ -525,7 +525,7 @@ public class GameStateManager : NetworkBehaviour
     }
 
     // Add this method to sync health and stocks from local entities to SyncVars
-    private void SyncPlayerValues()
+    public void SyncPlayerValues()
     {
         if (!IsServer) return;
         

@@ -49,7 +49,31 @@ public class Entity : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void TakeDamageServerRpc(float damage)
     {
-        TakeDamage(damage); // Apply damage logic on the server
+        // Apply damage on the server
+        TakeDamage(damage);
+        
+        // Make sure to update GameStateManager
+        GameStateManager.Instance.SyncPlayerValues();
+    }
+
+    // Add this method to your Entity class:
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestHitEntityServerRpc(NetworkObject targetEntity, float damageAmount)
+    {
+        // Validate the target entity still exists
+        if (targetEntity != null && targetEntity.IsSpawned)
+        {
+            // Get the Entity component from the NetworkObject
+            Entity entityToDamage = targetEntity.GetComponent<Entity>();
+            if (entityToDamage != null)
+            {
+                // Apply damage on the server
+                entityToDamage.TakeDamage(damageAmount);
+                
+                // Update GameStateManager to sync player values
+                GameStateManager.Instance.SyncPlayerValues();
+            }
+        }
     }
 
     public void TakeDamage(float damage)

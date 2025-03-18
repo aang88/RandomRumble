@@ -1,12 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 using UnityEngine;
+using FishNet.Object;
+using FishNet.Connection;
 
-public class WeaponSwitch : MonoBehaviour
+public class WeaponSwitch : NetworkBehaviour
 {
-
     [Header("References")]
     [SerializeField] private Transform[] weapons;
 
@@ -16,19 +16,24 @@ public class WeaponSwitch : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float switchTime;
 
-    private int selectedWeapon;
+    // Track selected weapon across network
+    private int selectedWeapon = 0;
     private float timeSinceLastSwitch;
-    // Start is called before the first frame update
-    void Start()
+    
+    public override void OnStartClient()
     {
+        base.OnStartClient();
         SetWeapons();
-        Select(selectedWeapon);
+        
+        // Request the current weapon from server if not the owner
+        if (!IsOwner)
+        {
+            RequestCurrentWeaponServerRpc();
+        }
     }
-
 
     private void SetWeapons()
     {
-   
         weapons = new Transform[transform.childCount];
 
         for(int i = 0; i < transform.childCount; i++)
@@ -39,20 +44,10 @@ public class WeaponSwitch : MonoBehaviour
         if (keys == null) keys = new KeyCode[weapons.Length];
     }
 
-    private void Select(int weaponIndex)
+    private void Update()
     {
-        for(int i = 0; i < weapons.Length; i++)
-        {
-            weapons[i].gameObject.SetActive(i == weaponIndex);
-        }
-
-        timeSinceLastSwitch = 0f;
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
+        if (!IsOwner) return;
+        
         int previousSelectedWeapon = selectedWeapon;
 
         for(int i = 0; i < keys.Length; i++)
@@ -63,9 +58,49 @@ public class WeaponSwitch : MonoBehaviour
             }
         }
 
-        if (previousSelectedWeapon != selectedWeapon) Select(selectedWeapon);
+        if (previousSelectedWeapon != selectedWeapon) 
+        {
+            Select(selectedWeapon);
+            SwitchWeaponServerRpc(selectedWeapon);
+        }
 
         timeSinceLastSwitch += Time.deltaTime;
+    }
+    
+    private void Select(int weaponIndex)
+    {
+        for(int i = 0; i < weapons.Length; i++)
+        {
+            weapons[i].gameObject.SetActive(i == weaponIndex);
+        }
 
+        timeSinceLastSwitch = 0f;
+    }
+
+    [ServerRpc]
+    private void SwitchWeaponServerRpc(int weaponIndex)
+    {
+        SyncWeaponObserversRpc(weaponIndex);
+    }
+    
+    [ObserversRpc(ExcludeOwner = true)]
+    private void SyncWeaponObserversRpc(int weaponIndex)
+    {
+        selectedWeapon = weaponIndex;
+        Select(selectedWeapon);
+    }
+    
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestCurrentWeaponServerRpc(NetworkConnection conn = null)
+    {
+        // Server sends current weapon selection to the requesting client
+        TargetSyncWeaponRpc(conn, selectedWeapon);
+    }
+    
+    [TargetRpc]
+    private void TargetSyncWeaponRpc(NetworkConnection target, int weaponIndex)
+    {
+        selectedWeapon = weaponIndex;
+        Select(selectedWeapon);
     }
 }

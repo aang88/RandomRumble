@@ -1,14 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using FishNet.Object;
+using FishNet.Object.Synchronizing;
 
-public class WeaponController : MonoBehaviour
+public class WeaponController : NetworkBehaviour
 {
-
     public GameObject Meele;
     public bool CanAttack = true;
     public float AttackCooldown = 1.0f;
-    //public AudioClip WeaponAttackSound;
     public bool isAttacking = false;
     public float AttackWindow = 1.0f;
 
@@ -29,12 +29,14 @@ public class WeaponController : MonoBehaviour
     public bool isPlayer;
     
     public CollisionDetection collisionDetection;
+    
+    // Remove SyncVar attributes
+    private bool _syncedIsAttacking = false;
+    private bool _syncedIsBlocking = false;
 
-    // Start is called before the first frame update
     void Start()
     {
-        // ParryCooldown = BlockCooldown + 0.5f;
-        ParryCooldown =  0f;
+        ParryCooldown = 0f;
         Animator anim = Meele.GetComponent<Animator>();
         AnimationClip[] clips = anim.runtimeAnimatorController.animationClips;
         foreach (AnimationClip clip in clips)
@@ -48,48 +50,48 @@ public class WeaponController : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if(isPlayer == true)
+        if (isPlayer && IsOwner)
         {
             CheckBlocktime();
+            
             if (Input.GetMouseButtonDown(0))
             {
                 if (CanAttack && !isBlocking)
                 {
                     MeeleAttack();
+                    AttackServerRpc(true);
                 }
             }
 
             if (Input.GetMouseButton(1))
             {
-                // UnityEngine.Debug.Log(BlockDuration);
                 if (CanBlock && !isAttacking)
                 {
                     LastBlockTime = Time.time;
                     BlockDuration += Time.deltaTime;
                     Block();
+                    BlockServerRpc(true);
                 }
             }
 
-            if (Input.GetMouseButtonUp(1))
+            if (Input.GetMouseButtonUp(1) && isBlocking)
             {
-                isBlocking = false;
-                CanBlock = false;
-                BlockDuration = 0f; 
-                Animator anim = Meele.GetComponent<Animator>();
-                anim.SetBool("IsBlocking", false);
-                StartCoroutine(ResetBlockCooldown());
-
+                StopBlocking();
+                BlockServerRpc(false);
             }
         }
-
-        //Dummy Attacking
-        else
-        {
-            MeeleAttack();
-        }
+    }
+    
+    private void StopBlocking()
+    {
+        isBlocking = false;
+        CanBlock = false;
+        BlockDuration = 0f; 
+        Animator anim = Meele.GetComponent<Animator>();
+        anim.SetBool("IsBlocking", false);
+        StartCoroutine(ResetBlockCooldown());
     }
 
     public void CheckBlocktime()
@@ -100,25 +102,22 @@ public class WeaponController : MonoBehaviour
         }
         else
         {
-            //  UnityEngine.Debug.Log(Time.time - LastBlockTime);
             CanParry = false;
         }
     }   
 
     public void MeeleAttack()
     {
-        if (isAttacking){
-            return;
-        }
+        if (isAttacking) return;
+        
         isAttacking = true;
-        collisionDetection.ResetHit();
+        if (collisionDetection != null)
+            collisionDetection.ResetHit();
+            
         CanAttack = false;
         Animator anim = Meele.GetComponent<Animator>();
         anim.SetTrigger("Attack");
         
-       // AudioSource ac = GetComponent<AudioSource>();
-
-       // ac.PlayOneShot(WeaponAttackSound);
         StartCoroutine(ResetAttackCooldown());
     }
 
@@ -143,19 +142,65 @@ public class WeaponController : MonoBehaviour
     {
         StartCoroutine(ResetIsAttacking());
         yield return new WaitForSeconds(AttackCooldown);
-        UnityEngine.Debug.Log("CanAttack is True");
         CanAttack = true;
     }
 
     IEnumerator ResetBlockCooldown()
     {
         yield return new WaitForSeconds(BlockCooldown);
-        CanBlock= true;
+        CanBlock = true;
     }
 
     IEnumerator ResetIsAttacking()
     {
         yield return new WaitForSeconds(AttackWindow);
         isAttacking = false;
+        
+        // When animation is done, update server
+        if (IsOwner)
+            AttackServerRpc(false);
+    }
+    
+    // Network RPC methods
+    [ServerRpc]
+    private void AttackServerRpc(bool attacking)
+    {
+        _syncedIsAttacking = attacking;
+        SynchronizeAttackObserversRpc(attacking);
+    }
+    
+    [ServerRpc]
+    private void BlockServerRpc(bool blocking)
+    {
+        _syncedIsBlocking = blocking;
+        SynchronizeBlockObserversRpc(blocking);
+    }
+    
+    [ObserversRpc(ExcludeOwner = true)]
+    private void SynchronizeAttackObserversRpc(bool attacking)
+    {
+        // Handle the attack state change for clients
+        if (attacking && !isAttacking)
+        {
+            MeeleAttack();
+        }
+        else if (!attacking && isAttacking)
+        {
+            isAttacking = false;
+        }
+    }
+    
+    [ObserversRpc(ExcludeOwner = true)]
+    private void SynchronizeBlockObserversRpc(bool blocking)
+    {
+        // Handle the block state change for clients
+        if (blocking && !isBlocking)
+        {
+            Block();
+        }
+        else if (!blocking && isBlocking)
+        {
+            StopBlocking();
+        }
     }
 }
