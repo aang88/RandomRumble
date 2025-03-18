@@ -824,7 +824,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 0}
+  _addedNetworkObject: {fileID: 4925201814354678423}
   _networkObjectCache: {fileID: 0}
 --- !u!1 &7612949762858392635
 GameObject:
@@ -1215,9 +1215,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  fireCooldown: 0
+  fireCooldown: 1
   automatic: 1
-  currentCooldown: 0
+  currentCooldown: 1
   muzzleFlash: {fileID: 5476309236312911118, guid: ea3d1c770bb517f49943482d2631e685, type: 3}
   muzzleFlashPosition: {fileID: 7612949762474880602}
 --- !u!114 &7612949761937802349
@@ -1235,7 +1235,7 @@ MonoBehaviour:
   _componentIndexCache: 3
   _addedNetworkObject: {fileID: 4925201814354678423}
   _networkObjectCache: {fileID: 4925201814354678423}
-  damage: 100
+  damage: 10
   bulletRange: 99999
   playerCamera: {fileID: 7612949761273126357}
 --- !u!4 &7612949761937955706 stripped
