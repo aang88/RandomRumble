@@ -324,7 +324,43 @@ public class GameStateManager : NetworkBehaviour
         player1Movement.enabled = true;
         player2Movement.enabled = true;
 
+        // Use RPC to ensure all clients reset player positions
+        BroadcastPlayerPositionsRpc(player1SpawnPoint.position, player2SpawnPoint.position);
+
         currentState.Value = GameState.RoundPlaying;
+    }
+
+    // Update the BroadcastPlayerPositionsRpc method to include rotation
+    [ObserversRpc]
+    private void BroadcastPlayerPositionsRpc(Vector3 player1Position, Vector3 player2Position)
+    {
+        if (player1 != null)
+        {
+            Transform player1Root = GetRootParent(player1.transform);
+            player1Root.position = player1Position;
+            // Reset rotation to upright
+            player1Root.rotation = Quaternion.identity;
+            Rigidbody rb1 = player1Root.GetComponent<Rigidbody>();
+            if (rb1 != null) {
+                rb1.velocity = Vector3.zero;
+                rb1.angularVelocity = Vector3.zero; // Stop any spinning
+            }
+        }
+        
+        if (player2 != null)
+        {
+            Transform player2Root = GetRootParent(player2.transform);
+            player2Root.position = player2Position;
+            // Reset rotation to upright
+            player2Root.rotation = Quaternion.identity;
+            Rigidbody rb2 = player2Root.GetComponent<Rigidbody>();
+            if (rb2 != null) {
+                rb2.velocity = Vector3.zero;
+                rb2.angularVelocity = Vector3.zero; // Stop any spinning
+            }
+        }
+        
+        UnityEngine.Debug.Log("Player positions and rotations reset on client");
     }
 
     private void CountDown()
