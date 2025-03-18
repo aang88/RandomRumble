@@ -952,6 +952,7 @@ GameObject:
   - component: {fileID: 7612949763097246795}
   - component: {fileID: 7612949763097246798}
   - component: {fileID: 7612949763097246785}
+  - component: {fileID: 4755577620548293648}
   m_Layer: 12
   m_Name: Capsule
   m_TagString: Enemy
@@ -1071,6 +1072,20 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
+--- !u!64 &4755577620548293648
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7612949763097246793}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 0
+  serializedVersion: 4
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &7612949763270469371
 GameObject:
   m_ObjectHideFlags: 0

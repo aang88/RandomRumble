@@ -147,11 +147,33 @@ public class PlayerMovement1 : NetworkBehaviour
             }
         }
 
+        // Ensure the rigidbody is properly configured for networking
+        if (rb != null)
+        {
+            // Configure rigidbody for proper network physics - using base.Owner.IsLocalClient instead of IsOwner
+            rb.interpolation = base.Owner.IsLocalClient ? RigidbodyInterpolation.Interpolate : RigidbodyInterpolation.None;
+            rb.collisionDetectionMode = base.Owner.IsLocalClient ? CollisionDetectionMode.Continuous : CollisionDetectionMode.Discrete;
+            
+            // Make sure non-owned players still have gravity
+            rb.useGravity = true;
+        }
+
         if (!base.Owner.IsLocalClient)
         {
-         
-            cam.gameObject.SetActive(false); // Disable camera for other players
-            return;
+            // Only disable the Camera component, not the GameObject
+            if (cam != null) {
+                Camera camComponent = cam.GetComponent<Camera>();
+                if (camComponent != null) {
+                    camComponent.enabled = false;
+                }
+                
+                // Also disable any AudioListener component to prevent audio conflicts
+                AudioListener audioListener = cam.GetComponent<AudioListener>();
+                if (audioListener != null) {
+                    audioListener.enabled = false;
+                }
+            }
+            // Don't return here, continue with initialization for remote players
         }
 
         InitializeVariables();
@@ -230,12 +252,25 @@ public class PlayerMovement1 : NetworkBehaviour
     #region Status Checks
     private void CheckGroundedStatus()
     {
-        // Use ground detection
-        float rayLength = (playerHeight * 0.3f);
-        UnityEngine.Debug.DrawRay(capsuleTransform.position, Vector3.down * rayLength, Color.red);
-        grounded = Physics.Raycast(capsuleTransform.position, Vector3.down, playerHeight * 0.35f, whatIsGround);
-        //UnityEngine.Debug.Log($"Grounded Status: {grounded}");
-
+        float radius = playerCollider.radius * 0.9f;
+        float rayLength = playerHeight * 0.35f;
+        
+        // Start the spherecast slightly above the bottom of the collider
+        Vector3 sphereCastOrigin = capsuleTransform.position;
+        
+        // Use SphereCast for better concave collider detection
+        grounded = Physics.SphereCast(
+            sphereCastOrigin,
+            radius,
+            Vector3.down,
+            out RaycastHit hit,
+            rayLength,
+            whatIsGround
+        );
+        
+        // Debug visualization
+        UnityEngine.Debug.DrawRay(sphereCastOrigin, Vector3.down * rayLength, grounded ? Color.green : Color.red);
+        
         // IMPORTANT FIX: If sliding and not grounded, ensure gravity is applied
         if (isSliding && !grounded)
         {
