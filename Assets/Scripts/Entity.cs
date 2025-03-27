@@ -60,6 +60,8 @@ public class Entity : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void RequestHitEntityServerRpc(NetworkObject targetEntity, float damageAmount)
     {
+        UnityEngine.Debug.Log($"Server received hit request. Target: {(targetEntity ? targetEntity.name : "null")}, Damage: {damageAmount}");
+        
         // Validate the target entity still exists
         if (targetEntity != null && targetEntity.IsSpawned)
         {
@@ -67,11 +69,44 @@ public class Entity : NetworkBehaviour
             Entity entityToDamage = targetEntity.GetComponent<Entity>();
             if (entityToDamage != null)
             {
+                UnityEngine.Debug.Log($"Applying damage {damageAmount} to {entityToDamage.name}");
+                
                 // Apply damage on the server
                 entityToDamage.TakeDamage(damageAmount);
                 
                 // Update GameStateManager to sync player values
-                GameStateManager.Instance.SyncPlayerValues();
+                if (GameStateManager.Instance != null)
+                {
+                    GameStateManager.Instance.SyncPlayerValues();
+                    
+                    // Broadcast hit to clients
+                    NotifyHitObserversRpc(targetEntity, damageAmount);
+                }
+                else
+                {
+                    UnityEngine.Debug.LogError("GameStateManager.Instance is null!");
+                }
+            }
+        }
+    }
+
+    [ObserversRpc]
+    private void NotifyHitObserversRpc(NetworkObject hitEntity, float damage)
+    {
+        // Only apply effects if this is the hit entity
+        if (hitEntity == NetworkObject)
+        {
+            UnityEngine.Debug.Log($"I was hit for {damage} damage!");
+            
+            // Apply visual/audio feedback here
+            if (camera != null)
+            {
+                CameraEffects cameraEffects = camera.GetComponent<CameraEffects>();
+                if (cameraEffects != null)
+                {
+                    cameraEffects.TriggerScreenShake();
+                    cameraEffects.TriggerFlash();
+                }
             }
         }
     }

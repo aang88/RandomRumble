@@ -48,6 +48,8 @@ public class PlayerMovement1 : NetworkBehaviour
     public float slopeSlideSpeed = 10f;
     public bool useGravityOnSlopes = true;
     public float downforceOnSlopes = 30f;
+    
+
 
     [Header("Sliding")]
     public float slideForce = 400f;
@@ -178,11 +180,16 @@ public class PlayerMovement1 : NetworkBehaviour
 
         InitializeVariables();
         InitializeCameraEffects();
+        
+       
+
     }
 
     void Update()
     {
-        if (!base.IsOwner) return; // Prevent input handling for non-local players
+        // Only process movement inputs for the owner or server
+        if (!IsOwner && !IsServer) return;
+        
         CheckGroundedStatus();
         HandleCoyoteTime();
         DebugGravityStatus();
@@ -195,13 +202,34 @@ public class PlayerMovement1 : NetworkBehaviour
         CheckForDoubleJumpBoots();
         CheckIfBlocking();
         UpdateDrag();
+        CheckCollisionStabilization();
     }
 
     void FixedUpdate()
     {
         if (!base.IsOwner) return; // Prevent input handling for non-local players
-        MovePlayer();
-        ApplySlopeDownforce();
+        
+        // Only apply movement forces when not in a player collision or after stabilization period
+        if (!isCollidingWithPlayer && Time.time - lastCollisionTime > stabilizationTime)
+        {
+            MovePlayer();
+            ApplySlopeDownforce();
+        }
+        else
+        {
+            // When in collision or recently collided, apply strong counter-forces
+            // to stabilize the player
+            if (rb.velocity.magnitude > 0.1f)
+            {
+                rb.AddForce(-rb.velocity * 5f, ForceMode.Acceleration);
+            }
+            
+            // Keep rotation stabilized
+            if (rb.angularVelocity.magnitude > 0.1f)
+            {
+                rb.angularVelocity = Vector3.zero;
+            }
+        }
     }
     #endregion
 
@@ -1040,4 +1068,80 @@ public class PlayerMovement1 : NetworkBehaviour
         readyToSlide = true;
     }
     #endregion
+
+    // Add this method to configure the Rigidbody for better collision handling
+
+    private void Start()
+    {
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            // These settings help prevent "jittery" behavior during collisions
+            rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+            
+            // Increase angular drag to reduce excessive spinning after collisions
+            rb.angularDrag = 0.8f;
+            
+            // If you have very lightweight characters, increase mass for stability
+            if (rb.mass < 1.0f)
+            {
+                rb.mass = 1.0f;
+            }
+        }
+    }
+
+    [Header("Collision Handling")]
+    public float stabilizationTime = 0.2f; // How long to stabilize after collision
+    private float lastCollisionTime = 0f;
+    private bool isCollidingWithPlayer = false;
+    private bool wasKinematic = false;
+
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        // Check if we're colliding with another player
+        PlayerMovement1 otherPlayer = collision.gameObject.GetComponent<PlayerMovement1>();
+        
+        if (otherPlayer != null && IsServer)
+        {
+            // Record collision state
+            isCollidingWithPlayer = true;
+            lastCollisionTime = Time.time;
+            wasKinematic = rb.isKinematic;
+        
+            // Make rigidbody kinematic to prevent pushing
+            rb.isKinematic = true;
+            
+            // Cancel any existing velocity
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+    }
+
+    
+    private void OnCollisionExit(Collision collision)
+    {
+        // Check if we're no longer colliding with a player
+        if (collision.gameObject.GetComponent<PlayerMovement1>() != null)
+        {
+            isCollidingWithPlayer = false;
+            
+            // Don't immediately turn off kinematic - start the timer
+            lastCollisionTime = Time.time;
+            
+            UnityEngine.Debug.Log("Player collision ended - starting stabilization timer");
+        }
+    }
+
+    private void CheckCollisionStabilization()
+    {
+        // If we're not colliding but were recently, check if stabilization period is over
+        if (!isCollidingWithPlayer && rb.isKinematic && Time.time - lastCollisionTime > stabilizationTime)
+        {
+            // Restore original kinematic state (usually false)
+            rb.isKinematic = wasKinematic;
+            UnityEngine.Debug.Log("Stabilization complete - restoring non-kinematic mode");
+        }
+    }
 }

@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
+using FishNet.Object;
+using FishNet.Object.Synchronizing;
 
 public class CollisionDetection : MonoBehaviour
 {
@@ -10,9 +12,9 @@ public class CollisionDetection : MonoBehaviour
     public float Damage;
     private bool hasHit = false;
     private Transform weaponOwner;
-    private float lastHitTime = 0f; // Track when we last hit
-    private float hitCooldown = 0.5f; // Cooldown between hits (in seconds)
-    private HashSet<Collider> hitColliders = new HashSet<Collider>(); // Track which colliders we've hit
+    private float lastHitTime = 0f;
+    private float hitCooldown = 0.5f;
+    private HashSet<Collider> hitColliders = new HashSet<Collider>();
 
     private void Start()
     {
@@ -21,81 +23,74 @@ public class CollisionDetection : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        UnityEngine.Debug.Log("Gelo Trigger with: " + other.name + ", Tag: " + other.tag);
+        UnityEngine.Debug.Log("Weapon Trigger with: " + other.name + ", Tag: " + other.tag);
 
-        // First verify that wp exists
         if (wp == null)
         {
             UnityEngine.Debug.LogError("WeaponController reference is missing on CollisionDetection");
             return;
         }
 
-        // Check if we can hit based on cooldown AND make sure we haven't hit this specific collider
-        if (other.tag == "Enemy" && wp.isAttacking && !hasHit &&
-            Time.time > lastHitTime + hitCooldown && !hitColliders.Contains(other))
+        NetworkBehaviour ownerNetBehaviour = weaponOwner?.GetComponent<NetworkBehaviour>();
+        bool isLocallyControlled = ownerNetBehaviour != null && ownerNetBehaviour.IsOwner;
+
+        // Only register hits from locally controlled players
+        if (other.CompareTag("Enemy") && wp.isAttacking && !hasHit &&
+            Time.time > lastHitTime + hitCooldown && !hitColliders.Contains(other) &&
+            isLocallyControlled)
         {
-            // UnityEngine.Debug.Log("Trigger with: " + other.name + ", Tag: " + other.tag);
+            // Skip if hitting self
             if (other.transform == weaponOwner || other.transform.IsChildOf(weaponOwner))
             {
-                UnityEngine.Debug.Log("Same Trigger with: " + other.name + ", Tag: " + other.tag);
+                UnityEngine.Debug.Log("Skipping hit on self: " + other.name);
                 return;
             }
-
+            
+            // Valid hit - mark it and apply damage through network
+            hitColliders.Add(other);
             hasHit = true;
-            lastHitTime = Time.time; // Record this hit time
-            hitColliders.Add(other); // Record this collider as hit
-
-            // Get the Animator component safely
-            Animator otherAnim = other.GetComponent<Animator>();
-            if (otherAnim != null)
+            lastHitTime = Time.time;
+            
+            // Try to get the entity to damage
+            Entity entityToDamage = other.GetComponentInParent<Entity>();
+            if (entityToDamage != null)
             {
-                otherAnim.SetTrigger("Hit");
-            }
-
-            // Safely get the Entity component
-            Entity enemy = null;
-            if (other.TryGetComponent(out enemy))
-            {
-                // Only call TakeDamageServerRpc if enemy is not null and is a networked object
-                if (enemy.IsOwner)
+                // Apply damage through network - find the NetworkObject first
+                NetworkObject networkObj = entityToDamage.GetComponent<NetworkObject>();
+                if (networkObj != null)
                 {
-                    enemy.TakeDamageServerRpc(Damage);  // Call the ServerRpc for damage
-                }
-                else
-                {
-                    enemy.TakeDamage(Damage);  // If it's not a networked object, just call directly
+                    // Get the player's NetworkBehaviour component to call the RPC
+                    NetworkBehaviour playerNetworkComponent = weaponOwner.GetComponent<NetworkBehaviour>();
+                    if (playerNetworkComponent != null)
+                    {
+                        // Call through a method that will use the ServerRpc
+                        Entity playerEntity = weaponOwner.GetComponent<Entity>();
+                        if (playerEntity != null)
+                        {
+                            playerEntity.RequestHitEntityServerRpc(networkObj, Damage);
+                        }
+                    }
                 }
 
-                if (enemy.Parried)
+                // Spawn hit effect locally (all clients will handle their own effects)
+                Vector3 hitPoint = other.ClosestPointOnBounds(transform.position);
+                if (HitParticle != null)
                 {
-                    // DisableWeapon();
-                    enemy.Parried = false;
+                    GameObject hitEffect = GameObject.Instantiate(HitParticle, hitPoint, Quaternion.identity);
+                    GameObject.Destroy(hitEffect, 1f);
                 }
-            }
-            else
-            {
-                UnityEngine.Debug.LogWarning("No Entity component found on " + other.name);
-            }
-
-            // Safely disable collider
-            Collider col = GetComponent<Collider>();
-            if (col != null)
-            {
-                col.enabled = false;
             }
         }
     }
 
     public void DisableWeapon()
     {
-        wp.isAttacking = false;
-        wp.isBlocking = false;
+        gameObject.SetActive(false);
     }
 
     public void ResetHit()
     {
         hasHit = false;
-        hitColliders.Clear(); // Clear the hit colliders for the next attack
-        GetComponent<Collider>().enabled = true;
+        hitColliders.Clear();
     }
 }
