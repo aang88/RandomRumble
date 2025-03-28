@@ -15,24 +15,35 @@ public class WeaponController : NetworkBehaviour
     public Transform weaponOwner;
 
     public bool CanBlock = true;
-    public bool isBlocking = false;
+
+    // Use SyncVar for isBlocking
+    public readonly SyncVar<bool> isBlocking = new SyncVar<bool>();
+
     public float BlockCooldown = 0f;
-    
     public float ParryCooldown = 0f;
-
     public bool CanParry = true;
-
     public float LastBlockTime = 0f;
-
     public float BlockDuration = 0f;
-
     public bool isPlayer;
-    
+
     public CollisionDetection collisionDetection;
     
     // Remove SyncVar attributes
     private bool _syncedIsAttacking = false;
-    private bool _syncedIsBlocking = false;
+
+    private void Awake()
+    {
+        isBlocking.OnChange += OnBlockingChanged;
+    }
+
+    private void OnBlockingChanged(bool previousValue, bool newValue, bool asServer)
+    {
+        Debug.Log($"isBlocking changed from {previousValue} to {newValue} (asServer: {asServer})");
+
+        // Update animations or other logic based on the new value
+        Animator anim = Meele.GetComponent<Animator>();
+        anim.SetBool("IsBlocking", newValue);
+    }
 
     void Start()
     {
@@ -52,13 +63,14 @@ public class WeaponController : NetworkBehaviour
 
     void Update()
     {
+        Debug.Log($" isBlocking.Value = {isBlocking.Value}");
         if (isPlayer && IsOwner)
         {
             CheckBlocktime();
-            
+
             if (Input.GetMouseButtonDown(0))
             {
-                if (CanAttack && !isBlocking)
+                if (CanAttack && !isBlocking.Value) // Use .Value to read the SyncVar
                 {
                     MeeleAttack();
                     AttackServerRpc(true);
@@ -76,8 +88,9 @@ public class WeaponController : NetworkBehaviour
                 }
             }
 
-            if (Input.GetMouseButtonUp(1) && isBlocking)
+            if (Input.GetMouseButtonUp(1) && isBlocking.Value) // Use .Value to read the SyncVar
             {
+                UnityEngine.Debug.Log("StopBlocking!!");
                 StopBlocking();
                 BlockServerRpc(false);
             }
@@ -86,7 +99,8 @@ public class WeaponController : NetworkBehaviour
     
     private void StopBlocking()
     {
-        isBlocking = false;
+        UnityEngine.Debug.Log("StopBlocking");
+        SetBlocking(false); // Use .Value to set the SyncVar
         CanBlock = false;
         BlockDuration = 0f; 
         Animator anim = Meele.GetComponent<Animator>();
@@ -121,9 +135,14 @@ public class WeaponController : NetworkBehaviour
         StartCoroutine(ResetAttackCooldown());
     }
 
+    [ServerRpc] private void SetBlocking(bool value) => isBlocking.Value = value;
+
+
     public void Block()
     {
-        isBlocking = true;
+        if (!CanBlock || isAttacking) return;
+        print("Blocking");
+        SetBlocking(true); // Use .Value to set the SyncVar
         Animator anim = Meele.GetComponent<Animator>();
         anim.SetBool("IsBlocking", true);
     }
@@ -133,10 +152,10 @@ public class WeaponController : NetworkBehaviour
         return BlockDuration <= 0.2f && CanParry;
     }
 
-    public bool IsBlocking()
-    {
-        return isBlocking;
-    }
+    // public bool IsBlocking()
+    // {
+    //     return isBlocking.;
+    // }
 
     IEnumerator ResetAttackCooldown()
     {
@@ -172,7 +191,7 @@ public class WeaponController : NetworkBehaviour
     [ServerRpc]
     private void BlockServerRpc(bool blocking)
     {
-        _syncedIsBlocking = blocking;
+        // _syncedIsBlocking = blocking;
         SynchronizeBlockObserversRpc(blocking);
     }
     
@@ -194,11 +213,11 @@ public class WeaponController : NetworkBehaviour
     private void SynchronizeBlockObserversRpc(bool blocking)
     {
         // Handle the block state change for clients
-        if (blocking && !isBlocking)
+        if (blocking && !isBlocking.Value)
         {
             Block();
         }
-        else if (!blocking && isBlocking)
+        else if (!blocking && isBlocking.Value)
         {
             StopBlocking();
         }

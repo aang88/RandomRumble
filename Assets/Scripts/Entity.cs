@@ -45,6 +45,10 @@ public class Entity : NetworkBehaviour
         }
     }
 
+    public void Update(){
+    //   UnityEngine.Debug.Log("IsBlocking" + weaponController.IsBlocking());
+    }
+
     // Call this from the client to apply damage on the server
     [ServerRpc(RequireOwnership = false)]
     public void TakeDamageServerRpc(float damage)
@@ -122,12 +126,12 @@ public class Entity : NetworkBehaviour
 
         try
         {
-            if (weaponController.IsBlocking() && !weaponController.SuccessfulParry())
+            if (weaponController.isBlocking.Value && !weaponController.SuccessfulParry())
             {
                 Health -= damage / 2;
                 UnityEngine.Debug.Log("HIT: DAMAGE BLOCKED!");
             }
-            else if (weaponController.IsBlocking() && weaponController.SuccessfulParry())
+            else if (weaponController.isBlocking.Value && weaponController.SuccessfulParry())
             {
                 parried = true;
                 UnityEngine.Debug.Log("HIT: PARRY!");

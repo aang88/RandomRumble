@@ -502,7 +502,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   wp: {fileID: 7612949762858392637}
   HitParticle: {fileID: 0}
-  Damage: 50
+  Damage: 4
 --- !u!54 &7612949762229446774
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -658,7 +658,6 @@ MonoBehaviour:
   playerCollider: {fileID: 7612949763097246795}
   fovTransitionSpeed: 3
   state: 0
-  counterforceStrength: 0.9
   stabilizationTime: 0.2
 --- !u!54 &7612949762535379900
 Rigidbody:
@@ -913,6 +912,7 @@ MonoBehaviour:
   CanBlock: 1
   isBlocking: 0
   BlockCooldown: 1
+  autoAttack: 0
   ParryCooldown: 0
   CanParry: 0
   LastBlockTime: 0

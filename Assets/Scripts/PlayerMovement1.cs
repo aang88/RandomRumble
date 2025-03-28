@@ -414,7 +414,7 @@ public class PlayerMovement1 : NetworkBehaviour
     private void CheckIfBlocking()
     {
         WeaponController weaponController = weaponHolder.gameObject.GetComponent<WeaponController>();
-        bool isBlocking = weaponController.isBlocking;
+        bool isBlocking = weaponController.isBlocking.Value;
 
         if (isBlocking && !wasBlocking)
         {
