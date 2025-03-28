@@ -568,6 +568,7 @@ GameObject:
   - component: {fileID: -2496881582064209649}
   - component: {fileID: -2725012056764854737}
   - component: {fileID: 6270764290622197483}
+  - component: {fileID: 248247372430976205}
   m_Layer: 0
   m_Name: Player
   m_TagString: Enemy
@@ -818,7 +819,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 4925201814354678423}
   StartingHealth: 100
   camera: {fileID: 7612949761273126359}
-  freezer: {fileID: 0}
+  freezer: {fileID: 248247372430976205}
   weaponController: {fileID: 7612949762858392637}
 --- !u!114 &-2725012056764854737
 MonoBehaviour:
@@ -852,6 +853,20 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 4925201814354678423}
   _allowSpawning: 1
   _allowDespawning: 1
+--- !u!114 &248247372430976205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7612949762535379899}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c95e8ebcc148cd4a801dfdf8b0b2b84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  duration: 0.5
+  pendingFreezeDuration: 0
 --- !u!1 &7612949762858392635
 GameObject:
   m_ObjectHideFlags: 0

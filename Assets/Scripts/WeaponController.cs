@@ -152,8 +152,10 @@ public class WeaponController : NetworkBehaviour
             collisionDetection.ResetHit();
             
         CanAttack = false;
+        NotifyAnimationObserversRpc("Attack");
         Animator anim = Meele.GetComponent<Animator>();
         anim.SetTrigger("Attack");
+        
         
         StartCoroutine(ResetAttackCooldown());
     }
@@ -173,7 +175,7 @@ public class WeaponController : NetworkBehaviour
     [Server]
     public bool SuccessfulParry()
     {
-        bool isParrySuccessful = BlockDuration <= 0.2f && CanParry;
+        bool isParrySuccessful = BlockDuration <= 0.4f && CanParry;
         Debug.Log($"Parry check on server: BlockDuration = {BlockDuration}, CanParry = {CanParry}, Success = {isParrySuccessful}");
         return isParrySuccessful;
     }
@@ -249,5 +251,12 @@ public class WeaponController : NetworkBehaviour
         {
             StopBlocking();
         }
+    }
+
+    [ObserversRpc]
+    private void NotifyAnimationObserversRpc(string animationName)
+    {
+        Animator anim = Meele.GetComponent<Animator>();
+        anim.Play(animationName);
     }
 }
