@@ -6,6 +6,7 @@ TagManager:
   tags:
   - DoubleJump
   - Enemy
+  - PlayerUI
   layers:
   - Default
   - TransparentFX

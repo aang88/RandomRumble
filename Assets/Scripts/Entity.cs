@@ -45,6 +45,26 @@ public class Entity : NetworkBehaviour
         }
     }
 
+    // In FishNet, you need to use Rpc in a method that's marked with [ServerRpc] or [ObserversRpc] if it's meant to be invoked from the client
+    [ObserversRpc] // This replaces ClientRpc in FishNet
+    public void RpcToggleCanvas(bool isPlayer1, bool enable)
+    {
+        Canvas playerCanvas = GetComponentInChildren<Canvas>();
+        if (playerCanvas != null)
+        {
+            if (isPlayer1)
+            {
+                // Only enable the UI for Player 1 (local player)
+                playerCanvas.enabled = enable;
+            }
+            else
+            {
+                // Disable UI for Player 2 if it's not the local player
+                playerCanvas.enabled = enable;
+            }
+        }
+    }
+
     // Call this from the client to apply damage on the server
     [ServerRpc(RequireOwnership = false)]
     public void TakeDamageServerRpc(float damage)

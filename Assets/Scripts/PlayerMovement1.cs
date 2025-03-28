@@ -138,8 +138,8 @@ public class PlayerMovement1 : NetworkBehaviour
             Entity playerEntity = GetComponent<Entity>();
             if (playerEntity != null)
             {
-                UnityEngine.Debug.Log("Attempting to add a player: " + playerEntity);
-                GameStateManager.Instance.AddPlayer(playerEntity);
+                //UnityEngine.Debug.Log("Attempting to add a player: " + playerEntity);
+                //GameStateManager.Instance.AddPlayer(playerEntity);
             }
             else
             {
@@ -246,6 +246,27 @@ public class PlayerMovement1 : NetworkBehaviour
         cameraEffects.cameraLandDuration = cameraLandDuration;
         cameraEffects.effectSmoothness = jumpSmoothness;
         cameraEffects.maxTiltAngle = maxTiltAngle;
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+
+        if (IsOwner)
+        {
+            UnityEngine.Debug.Log("Local player spawned. Notifying GameStateManager.");
+            Entity entity = GetComponent<Entity>();
+            GameStateManager.Instance.OnLocalPlayerReady(entity);
+
+            NotifyServerOfJoinServerRpc();
+        }
+    }
+
+
+    [ServerRpc]
+    private void NotifyServerOfJoinServerRpc()
+    {
+        GameStateManager.Instance.AddPlayer(GetComponent<Entity>());
     }
     #endregion
 

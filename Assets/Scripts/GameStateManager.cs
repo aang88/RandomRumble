@@ -32,6 +32,8 @@ public class GameStateManager : NetworkBehaviour
     private readonly SyncVar<int> player1Stocks = new SyncVar<int>();
     private readonly SyncVar<int> player2Stocks = new SyncVar<int>();
 
+    private bool uiInitialized = false; // Flag to track UI initialization
+
     float startingTime = 40f;
 
     [Header("UI Elements")]
@@ -58,11 +60,22 @@ public class GameStateManager : NetworkBehaviour
 
     void Update()
     {
-        
+        Debug.Log("player1: " + player1);
+        Debug.Log("player2: " + player2);
+
         // Only run basic checks on both server and client
         if (player1 != null && player2 != null)
         {
             playersInitialized = true;
+            // Update UI on all clients
+            UpdateUIValues();
+
+
+            // Only run game logic on server
+            if (IsServer)
+            {
+                HandleGameState();
+            }
         }
 
         if (!playersInitialized)
@@ -72,14 +85,9 @@ public class GameStateManager : NetworkBehaviour
             return;
         }
 
-        // Update UI on all clients
-        UpdateUIValues();
 
-        // Only run game logic on server
-        if (IsServer)
-        {
-            HandleGameState();
-        }
+
+       
     }
 
     private void HandleGameState()
@@ -155,7 +163,7 @@ public class GameStateManager : NetworkBehaviour
     [ObserversRpc]
     private void BroadcastPlayerJoinedRpc(NetworkObject playerNetObj, int playerNumber)
     {
-        UnityEngine.Debug.Log($"Received player {playerNumber} join broadcast");
+        UnityEngine.Debug.Log($"Received player {playerNumber} join broadcast PLAYER1 {player1} PLAYER2 {player2}" );
         
         if (playerNetObj == null)
         {
@@ -170,12 +178,12 @@ public class GameStateManager : NetworkBehaviour
             return;
         }
 
-        if (playerNumber == 1 && player1 == null)
+        if (playerNumber == 1)
         {
             player1 = playerEntity;
             player1Movement = playerEntity.GetComponent<PlayerMovement1>();
         }
-        else if (playerNumber == 2 && player2 == null)
+        else if (playerNumber == 2)
         {
             player2 = playerEntity;
             player2Movement = playerEntity.GetComponent<PlayerMovement1>();
@@ -216,13 +224,14 @@ public class GameStateManager : NetworkBehaviour
 
     void Awake()
     {
-        if (Instance == null)
+        if (Instance != null && Instance != this)
         {
-            Instance = this;
+            Destroy(gameObject);  // Ensure only one instance exists
         }
         else
         {
-            Destroy(gameObject);
+            Instance = this;
+            
         }
     }
 
@@ -232,66 +241,114 @@ public class GameStateManager : NetworkBehaviour
         UpdateUIValues();
     }
 
+    public void OnLocalPlayerReady(Entity localPlayer)
+    {
+        Debug.Log("OnLocalPlayerReady called on client.");
+
+
+
+        // If the player is ready, call AddPlayer (AddPlayer handles player assignment)
+        // AddPlayer(localPlayer);
+        if (!uiInitialized)
+        {
+            // Initialize UI if it's not already initialized
+            Canvas playerCanvas = localPlayer.GetComponentInChildren<Canvas>();
+            if (playerCanvas != null)
+            {
+                winScreen = playerCanvas.GetComponentInChildren<RawImage>();
+                TimeLeftText = playerCanvas.transform.Find("Time").GetComponent<Text>();
+                Health1 = playerCanvas.transform.Find("Player1Holder/Player1Health").GetComponent<Text>();
+                Health2 = playerCanvas.transform.Find("Player2Holder/Player2Health").GetComponent<Text>();
+                Rounds1 = playerCanvas.transform.Find("RoundCounter1/Round1").GetComponent<Text>();
+                Rounds2 = playerCanvas.transform.Find("RoundCounter2/Round2").GetComponent<Text>();
+
+                // Mark UI as initialized
+                uiInitialized = true;
+            }
+        }
+
+    }
+
     public void AddPlayer(Entity playerEntity)
     {
-        UnityEngine.Debug.Log("Attempting to add a player: " + playerEntity);
-        int playerNumber = 0;
-        
+        Debug.Log("Server: Adding player " + playerEntity);
+
+        // Check if player1 is available
         if (player1 == null)
         {
             player1 = playerEntity;
-            player1.Health = player1.StartingHealth;
-            player1Movement = playerEntity.GetComponent<PlayerMovement1>();
             playerEntity.transform.position = player1SpawnPoint.position;
-            
-            // Initialize the SyncVars on the server
+
             if (IsServer)
             {
+                Debug.Log("Server: Setting stuff");
                 player1Health.Value = player1.StartingHealth;
                 player1Stocks.Value = 0;
             }
-            
-            playerNumber = 1;
+
+            // Enable UI for Player 1 only if it's the local player
+            if (playerEntity.IsOwner)
+            {
+                // Call RpcToggleCanvas on player1
+                player1.RpcToggleCanvas(true, true);  // Enable Player 1's canvas for the local player
+            }
+            else
+            {
+                player1.RpcToggleCanvas(true, false);  // Disable Player 1's canvas for non-local players
+            }
         }
+        // Check if player2 is available
         else if (player2 == null)
         {
+            Debug.Log("Server: I am player 2");
             player2 = playerEntity;
-            player2.Health = player2.StartingHealth;
-            player2Movement = playerEntity.GetComponent<PlayerMovement1>();
             playerEntity.transform.position = player2SpawnPoint.position;
-            
-            // Initialize the SyncVars on the server
+
             if (IsServer)
             {
                 player2Health.Value = player2.StartingHealth;
                 player2Stocks.Value = 0;
             }
-            
-            playerNumber = 2;
+
+            // Enable UI for Player 2 only if it's the local player
+            if (playerEntity.IsOwner)
+            {
+                // Call RpcToggleCanvas on player2
+                player2.RpcToggleCanvas(false, true);  // Enable Player 2's canvas for the local player
+            }
+            else
+            {
+                player2.RpcToggleCanvas(false, false);  // Disable Player 2's canvas for non-local players
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Both players are already assigned.");
+            return; // Avoid adding more than 2 players
         }
 
-        if (IsServer && playerNumber > 0)
+        // Broadcast player join to all clients (on the server)
+        if (IsServer)
         {
-            // Broadcast to all clients that a player has joined
-            NetworkObject playerNetObj = playerEntity.GetComponent<NetworkObject>();
-            BroadcastPlayerJoinedRpc(playerNetObj, playerNumber);
-        }
-        
-        if (!IsServer) // Client-side initialization
-        {
-            RequestPlayerInitializationServerRpc(player2?.Health ?? 0, player2?.Stocks ?? 0);
+            NetworkObject netObj = playerEntity.GetComponent<NetworkObject>();
+            int number = (playerEntity == player1) ? 1 : 2;
+            BroadcastPlayerJoinedRpc(netObj, number);
         }
     }
+
+
 
 
     private bool CheckRoundEnd()
-    {
-        if (player1.Health <= 0 || player2.Health <= 0 || syncedTimeLeft.Value <= 0)
-        {
-            return true;
-        }
-        return false;
-    }
+            {
+                if (player1.Health <= 0 || player2.Health <= 0 || syncedTimeLeft.Value <= 0)
+                {
+                    return true;
+                }
+                return false;
+            }
+        
+    
 
     public void ResetRound()
     {
@@ -489,6 +546,14 @@ public class GameStateManager : NetworkBehaviour
         }
         else
         {
+            if(Health1 != null)
+{
+                UnityEngine.Debug.Log("Health1 is initialized: " + Health1.name);
+            }
+else
+            {
+                UnityEngine.Debug.LogWarning("Health1 is NOT initialized.");
+            }
             Health1.text = "Initializing...";
         }
 
