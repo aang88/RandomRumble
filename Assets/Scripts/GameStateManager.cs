@@ -41,6 +41,7 @@ public class GameStateManager : NetworkBehaviour
     public Text Health2;
     public Text Rounds1;
     public Text Rounds2;
+    private bool weaponSelectionTriggered = false;
 
     private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
 
@@ -116,7 +117,11 @@ public class GameStateManager : NetworkBehaviour
                 ProcessRoundEnd();
                 break;
             case GameState.ItemPick: // Handle weapon selection
-                TriggerWeaponSelection();
+                if (!weaponSelectionTriggered)
+                {
+                    TriggerWeaponSelection();
+                    weaponSelectionTriggered = true; // Set the flag to prevent repeated calls
+                }
                 break;
             case GameState.GameOver:
                 SetPlayersEnabled(false);

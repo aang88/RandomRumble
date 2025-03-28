@@ -81,20 +81,22 @@ public class WeaponSelection : NetworkBehaviour
 
      private void CreateWeaponButtons(GameObject[] weaponSelections, string category)
     {
+       
         foreach (var weapon in weaponSelections)
         {
+             Debug.Log("weapon: "+ weapon + "category: " + category);
             if (weapon == null) continue;
             Debug.Log($"Button instantiated for weapon: {weapon.name}, Category: {category}");
 
 
             // Instantiate a button
-            GameObject button = Instantiate(buttonPrefab, buttonParent);
+            // GameObject button = Instantiate(buttonPrefab, buttonParent);
 
             // Set the button's text to the weapon's name
-            button.GetComponentInChildren<Text>().text = weapon.name;
+            // button.GetComponentInChildren<Text>().text = weapon.name;
 
-            // Add a click event to the button
-            button.GetComponent<Button>().onClick.AddListener(() => SelectWeapon(weapon,category));
+            // // Add a click event to the button
+            // button.GetComponent<Button>().onClick.AddListener(() => SelectWeapon(weapon,category));
         }
     }
 
