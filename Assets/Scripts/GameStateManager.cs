@@ -20,7 +20,7 @@ public class GameStateManager : NetworkBehaviour
 
     // Use NetworkVariable to sync data
     private readonly SyncVar<float> syncedTimeLeft = new SyncVar<float>(50f);
-    private readonly SyncVar<GameState> currentState = new SyncVar<GameState>(GameState.RoundStart);
+    private readonly SyncVar<GameState> currentState = new SyncVar<GameState>(GameState.ItemPick);
 
     // Add a SyncVar for player NetworkObjects
     private readonly SyncVar<NetworkObject> syncedPlayer1 = new SyncVar<NetworkObject>();
@@ -42,6 +42,9 @@ public class GameStateManager : NetworkBehaviour
     public Text Rounds1;
     public Text Rounds2;
 
+    private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
+
+
     public Entity player1;
     public Entity player2;
     public Transform player1SpawnPoint;
@@ -51,9 +54,15 @@ public class GameStateManager : NetworkBehaviour
 
     private bool playersInitialized = false;
 
+    
     void Start()
     {
-        // Initialize player setup if needed.
+
+        // Subscribe to the SyncVar change event
+        
+
+        // Initialize player weapons dictionary
+        playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
     }
 
     void Update()
@@ -84,6 +93,7 @@ public class GameStateManager : NetworkBehaviour
 
     private void HandleGameState()
     {
+        UnityEngine.Debug.Log("Current Gamesate: " + currentState.Value);
         // Call SyncPlayerValues() at the beginning to update all synced values
         SyncPlayerValues();
         
@@ -105,12 +115,90 @@ public class GameStateManager : NetworkBehaviour
                 // Remove CheckDeath() call from here
                 ProcessRoundEnd();
                 break;
+            case GameState.ItemPick: // Handle weapon selection
+                TriggerWeaponSelection();
+                break;
             case GameState.GameOver:
                 SetPlayersEnabled(false);
                 ShowWinScreen();
                 HideText();
                 break;
         }
+    }
+
+    public void StorePlayerWeapons(NetworkConnection conn, GameObject[] selectedWeapons)
+    {
+        if (playerWeapons.ContainsKey(conn))
+        {
+            playerWeapons[conn] = selectedWeapons;
+        }
+        else
+        {
+            playerWeapons.Add(conn, selectedWeapons);
+        }
+
+        Debug.Log($"Stored weapons for player {conn.ClientId}");
+
+        // Check if all players have selected their weapons
+        CheckAllPlayersReady();
+    }
+
+    private void CheckAllPlayersReady()
+    {
+        if (playerWeapons.Count == NetworkManager.ServerManager.Clients.Count)
+        {
+            SyncPlayerWeapons(playerWeapons);
+            currentState.Value = GameState.RoundStart;
+        }
+    }
+
+
+    [ObserversRpc]
+    private void SyncPlayerWeapons(Dictionary<NetworkConnection, GameObject[]> weapons)
+    {
+        foreach (var entry in weapons)
+        {
+            NetworkConnection conn = entry.Key;
+            GameObject[] selectedWeapons = entry.Value;
+
+            NetworkObject playerObject = conn.FirstObject;
+            if (playerObject != null)
+            {
+                WeaponSelection weaponSelection = playerObject.GetComponent<WeaponSelection>();
+                if (weaponSelection != null)
+                {
+                    weaponSelection.AssignWeapons(selectedWeapons);
+                }
+            }
+        }
+    }
+
+
+    [ObserversRpc]
+    private void TriggerWeaponSelection()
+    {
+        Debug.Log("TriggerWeaponSelection called on client.");
+        WeaponSelection[] weaponSelections = FindObjectsOfType<WeaponSelection>();
+        foreach (var weaponSelection in weaponSelections)
+        {
+            Debug.Log($"WeaponSelection found. IsOwner: {weaponSelection.IsOwner}, GameObject: {weaponSelection.gameObject.name}, InstanceID: {weaponSelection.GetInstanceID()}");
+            if (weaponSelection.IsOwner)
+            {
+                if (weaponSelection.buttonPrefab == null)
+                {
+                    Debug.LogError($"ButtonPrefab is not assigned in the owned WeaponSelection on {weaponSelection.gameObject.name}, InstanceID: {weaponSelection.GetInstanceID()}");
+                }
+                else
+                {
+                    Debug.Log($"ButtonPrefab is assigned: {weaponSelection.buttonPrefab.name} on {weaponSelection.gameObject.name}, InstanceID: {weaponSelection.GetInstanceID()}");
+                }
+
+                weaponSelection.PickRandomWeaponPool();
+                return;
+            }
+        }
+
+        Debug.LogError("No owned WeaponSelection component found for this client.");
     }
 
     public override void OnStartClient()
@@ -216,6 +304,9 @@ public class GameStateManager : NetworkBehaviour
 
     void Awake()
     {
+        // Add callback subscription for currentState
+        currentState.OnChange += OnGameStateChanged;
+        
         if (Instance == null)
         {
             Instance = this;
@@ -226,7 +317,8 @@ public class GameStateManager : NetworkBehaviour
         }
     }
 
-    private void OnGameStateChanged(GameState oldState, GameState newState)
+    // Remove the incorrect attribute and keep the method as is
+    private void OnGameStateChanged(GameState oldState, GameState newState, bool asServer)
     {
         UnityEngine.Debug.Log("State changed to: " + newState);
         UpdateUIValues();

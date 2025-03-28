@@ -106,6 +106,7 @@ namespace FishNet.Component.Spawning
 
             NetworkObject nob = _networkManager.GetPooledInstantiated(_playerPrefab, position, rotation, true);
             _networkManager.ServerManager.Spawn(nob, conn);
+            Debug.Log($"Player spawned. Owner: {nob.Owner.ClientId}");
 
             //If there are no global scenes 
             if (_addToDefaultScene)
