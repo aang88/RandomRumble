@@ -25,6 +25,8 @@ public class WeaponController : NetworkBehaviour
     public float LastBlockTime = 0f;
     public float BlockDuration = 0f;
     public bool isPlayer;
+    
+    public bool autoAttack = false;
 
     public CollisionDetection collisionDetection;
     
@@ -66,7 +68,7 @@ public class WeaponController : NetworkBehaviour
         Debug.Log($" isBlocking.Value = {isBlocking.Value}");
         if (isPlayer && IsOwner)
         {
-            CheckBlocktime();
+            CheckBlocktimeServerRpc();
 
             if (Input.GetMouseButtonDown(0))
             {
@@ -83,6 +85,7 @@ public class WeaponController : NetworkBehaviour
                 {
                     LastBlockTime = Time.time;
                     BlockDuration += Time.deltaTime;
+                    UpdateBlockDurationServerRpc(BlockDuration);
                     Block();
                     BlockServerRpc(true);
                 }
@@ -90,25 +93,45 @@ public class WeaponController : NetworkBehaviour
 
             if (Input.GetMouseButtonUp(1) && isBlocking.Value) // Use .Value to read the SyncVar
             {
-                UnityEngine.Debug.Log("StopBlocking!!");
                 StopBlocking();
                 BlockServerRpc(false);
             }
+
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                autoAttack = !autoAttack;
+            }
+
+            if (autoAttack && CanAttack && !isBlocking.Value)
+            {
+                MeeleAttack();
+                AttackServerRpc(true);
+            }
         }
+    }
+
+    [ServerRpc]
+    private void UpdateBlockDurationServerRpc(float duration)
+    {
+        BlockDuration = duration;
     }
     
     private void StopBlocking()
     {
-        UnityEngine.Debug.Log("StopBlocking");
+        // UnityEngine.Debug.Log("StopBlocking");
         SetBlocking(false); // Use .Value to set the SyncVar
         CanBlock = false;
-        BlockDuration = 0f; 
+        BlockServerRpc(false);
+        BlockDuration = 0f;
+        UpdateBlockDurationServerRpc(0f);
         Animator anim = Meele.GetComponent<Animator>();
         anim.SetBool("IsBlocking", false);
         StartCoroutine(ResetBlockCooldown());
     }
 
-    public void CheckBlocktime()
+  
+    [ServerRpc]
+    public void CheckBlocktimeServerRpc()
     {
         if (Time.time - LastBlockTime > ParryCooldown)
         {
@@ -118,7 +141,7 @@ public class WeaponController : NetworkBehaviour
         {
             CanParry = false;
         }
-    }   
+    }  
 
     public void MeeleAttack()
     {
@@ -147,10 +170,15 @@ public class WeaponController : NetworkBehaviour
         anim.SetBool("IsBlocking", true);
     }
 
+    [Server]
     public bool SuccessfulParry()
-    {   
-        return BlockDuration <= 0.2f && CanParry;
+    {
+        bool isParrySuccessful = BlockDuration <= 0.2f && CanParry;
+        Debug.Log($"Parry check on server: BlockDuration = {BlockDuration}, CanParry = {CanParry}, Success = {isParrySuccessful}");
+        return isParrySuccessful;
     }
+
+    
 
     // public bool IsBlocking()
     // {

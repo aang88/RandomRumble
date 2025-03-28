@@ -124,55 +124,74 @@ public class Entity : NetworkBehaviour
             return;
         }
 
-        try
+        if (IsServer) // Ensure this logic runs only on the server
         {
-            if (weaponController.isBlocking.Value && !weaponController.SuccessfulParry())
-            {
-                Health -= damage / 2;
-                UnityEngine.Debug.Log("HIT: DAMAGE BLOCKED!");
-            }
-            else if (weaponController.isBlocking.Value && weaponController.SuccessfulParry())
-            {
-                parried = true;
-                UnityEngine.Debug.Log("HIT: PARRY!");
+            UnityEngine.Debug.Log("TAKING DAMAGE");
 
-                if (freezer != null)
+            if (weaponController.isBlocking.Value)
+            {
+                if (weaponController.SuccessfulParry())
                 {
-                    StartCoroutine(freezer.Freeze());
+                    parried = true;
+                    UnityEngine.Debug.Log("HIT: PARRY!");
+                    NotifyParryResult(true);
                 }
                 else
                 {
-                    UnityEngine.Debug.LogWarning("Freezer component is missing on " + gameObject.name);
-                }
-
-                if (camera != null)
-                {
-                    CameraEffects cameraEffects = camera.GetComponent<CameraEffects>();
-                    if (cameraEffects != null)
-                    {
-                        cameraEffects.TriggerScreenShake();
-                        cameraEffects.TriggerFlash();
-                    }
-                    else
-                    {
-                        UnityEngine.Debug.LogWarning("CameraEffects component is missing on main camera");
-                    }
-                }
-                else
-                {
-                    UnityEngine.Debug.LogWarning("Main camera not found");
+                    Health -= damage / 2;
+                    UnityEngine.Debug.Log("HIT: DAMAGE BLOCKED!");
                 }
             }
             else
             {
                 Health -= damage;
                 UnityEngine.Debug.Log("HIT: FULL DAMAGE!");
+                NotifyParryResult(false);
             }
         }
-        catch (System.Exception e)
+    }
+
+    [ObserversRpc]
+    private void NotifyParryResult(bool isParrySuccessful)
+    {
+        if (isParrySuccessful)
         {
-            UnityEngine.Debug.LogError("Error in takeDamage: " + e.Message);
-            Health -= damage;
+            UnityEngine.Debug.Log("Parry succeed on the client.");
+            ParryEffects();
+        }
+        else
+        {
+            UnityEngine.Debug.Log("Parry failed on the client.");
+            // Handle failed parry logic
+        }
+    }
+    public void ParryEffects()
+    {
+        if (freezer != null)
+        {
+            StartCoroutine(freezer.Freeze());
+        }
+        else
+        {
+            UnityEngine.Debug.LogWarning("Freezer component is missing on " + gameObject.name);
+        }
+
+        if (camera != null)
+        {
+            CameraEffects cameraEffects = camera.GetComponent<CameraEffects>();
+            if (cameraEffects != null)
+            {
+                cameraEffects.TriggerScreenShake();
+                cameraEffects.TriggerFlash();
+            }
+            else
+            {
+                UnityEngine.Debug.LogWarning("CameraEffects component is missing on main camera");
+            }
+        }
+        else
+        {
+            UnityEngine.Debug.LogWarning("Main camera not found");
         }
     }
 

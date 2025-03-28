@@ -32,7 +32,7 @@ public class GameStateManager : NetworkBehaviour
     private readonly SyncVar<int> player1Stocks = new SyncVar<int>();
     private readonly SyncVar<int> player2Stocks = new SyncVar<int>();
 
-    float startingTime = 40f;
+    public float startingTime = 40f;
 
     [Header("UI Elements")]
     public RawImage winScreen;

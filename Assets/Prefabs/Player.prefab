@@ -817,7 +817,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 4925201814354678423}
   _networkObjectCache: {fileID: 4925201814354678423}
   StartingHealth: 100
-  camera: {fileID: 0}
+  camera: {fileID: 7612949761273126359}
   freezer: {fileID: 0}
   weaponController: {fileID: 7612949762858392637}
 --- !u!114 &-2725012056764854737
@@ -910,14 +910,13 @@ MonoBehaviour:
   AttackWindow: 1
   weaponOwner: {fileID: 7612949762535379898}
   CanBlock: 1
-  isBlocking: 0
   BlockCooldown: 1
-  autoAttack: 0
   ParryCooldown: 0
   CanParry: 0
   LastBlockTime: 0
   BlockDuration: 0
   isPlayer: 1
+  autoAttack: 0
   collisionDetection: {fileID: 7612949762229446772}
 --- !u!114 &7612949762858392636
 MonoBehaviour:

@@ -32237,6 +32237,7 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 1391525335}
   _networkObjectCache: {fileID: 0}
+  startingTime: 100
   winScreen: {fileID: 0}
   TimeLeftText: {fileID: 1177295939}
   Health1: {fileID: 428805625}
