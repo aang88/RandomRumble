@@ -90,13 +90,13 @@ public class WeaponSelection : NetworkBehaviour
 
 
             // Instantiate a button
-            // GameObject button = Instantiate(buttonPrefab, buttonParent);
+            GameObject button = Instantiate(buttonPrefab, buttonParent);
 
             // Set the button's text to the weapon's name
-            // button.GetComponentInChildren<Text>().text = weapon.name;
+            button.GetComponentInChildren<Text>().text = weapon.name;
 
             // // Add a click event to the button
-            // button.GetComponent<Button>().onClick.AddListener(() => SelectWeapon(weapon,category));
+            button.GetComponent<Button>().onClick.AddListener(() => SelectWeapon(weapon,category));
         }
     }
 
