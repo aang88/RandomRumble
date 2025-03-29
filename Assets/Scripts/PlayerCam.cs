@@ -10,6 +10,8 @@ public class PlayerCam : NetworkBehaviour
 {
     public float sensX;
     public float sensY;
+    private bool isInUIState = false;
+
 
     public Transform orientation;
     float xRotation;
@@ -32,6 +34,9 @@ public class PlayerCam : NetworkBehaviour
             LockCursor();
         }
     }
+
+
+    
     
     private void LockCursor()
     {
@@ -40,8 +45,28 @@ public class PlayerCam : NetworkBehaviour
         cursorLocked = true;
     }
 
+    public void SetUIState(bool state)
+    {
+        isInUIState = state;
+
+        if (isInUIState)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+    }
+
     void Update()
     {
+        UnityEngine.Debug.Log("IsInUIState: " + isInUIState);
+        if (isInUIState)
+            return; // Skip camera input if in UI state
+
         if (base.IsOwner)
         {
             // Double check cursor lock state (safety)
@@ -49,7 +74,7 @@ public class PlayerCam : NetworkBehaviour
             {
                 LockCursor();
             }
-            
+
             HandleLocalCameraInput();
         }
         else
@@ -58,7 +83,6 @@ public class PlayerCam : NetworkBehaviour
             ApplySyncedRotation();
         }
     }
-
     private void HandleLocalCameraInput()
     {
         //Get Mouse Input

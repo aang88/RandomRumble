@@ -14,7 +14,7 @@ public class WeaponSelection : NetworkBehaviour
     private GameObject[] selections = new GameObject[3];
 
     public GameObject buttonPrefab; 
-    public Transform buttonParent; 
+    public RectTransform buttonParent; 
 
     public Transform weaponHolder;
 
@@ -49,13 +49,41 @@ public class WeaponSelection : NetworkBehaviour
         
     }
 
+    void Start()
+    {
+        // Find the buttonParent in the scene (e.g., by tag or name)
+        RectTransform buttonParentInScene = GameObject.Find("ButtonParent")?.GetComponent<RectTransform>();
+
+        // Assign the buttonParent to the WeaponSelection script
+        if (buttonParentInScene != null)
+        {
+            SetButtonParent(buttonParentInScene);
+        }
+        else
+        {
+            Debug.LogError("ButtonParent not found in the scene!");
+        }
+    }
+
+    public void SetButtonParent(RectTransform parent)
+    {
+        buttonParent = parent;
+        Debug.Log($"buttonParent assigned dynamically: {buttonParent.name}");
+    }
+
     public void PickRandomWeaponPool(){
         // Randomly select 3 weapons from the list
+
+        if (!IsOwner)
+        {
+            Debug.LogWarning("PickRandomWeaponPool called on a non-owner client. Ignoring.");
+            return;
+        }
         Debug.Log("PickRandomWeaponPool called.");
         Debug.Log($"MeeleWeapons count: {MeeleWeapons.Count}");
         Debug.Log($"RangedWeapons count: {RangedWeapons.Count}");
         Debug.Log($"MiscWeapons count: {MiscWeapons.Count}");
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 3; i++)
         {
             PickRandomWeapon(ref MeeleWeapons, ref PossibleMeeles, i);
             PickRandomWeapon(ref RangedWeapons, ref PossibleGuns, i);
@@ -81,12 +109,16 @@ public class WeaponSelection : NetworkBehaviour
 
      private void CreateWeaponButtons(GameObject[] weaponSelections, string category)
     {
-       
+       if (buttonParent == null)
+        {
+            Debug.LogError("buttonParent is not assigned! Buttons cannot be instantiated.");
+            return;
+        }
         foreach (var weapon in weaponSelections)
         {
-             Debug.Log("weapon: "+ weapon + "category: " + category);
+            //  Debug.Log("weapon: "+ weapon + "category: " + category);
             if (weapon == null) continue;
-            Debug.Log($"Button instantiated for weapon: {weapon.name}, Category: {category}");
+            // Debug.Log($"Button instantiated for weapon: {weapon.name}, Category: {category}");
 
 
             // Instantiate a button
@@ -96,20 +128,33 @@ public class WeaponSelection : NetworkBehaviour
             button.GetComponentInChildren<Text>().text = weapon.name;
 
             // // Add a click event to the button
-            button.GetComponent<Button>().onClick.AddListener(() => SelectWeapon(weapon,category));
+            Button buttonComponent = button.GetComponent<Button>();
+            if (buttonComponent != null)
+            {
+                buttonComponent.onClick.AddListener(() => SelectWeapon(weapon, category));
+                Debug.Log($"Listener added to button for weapon: {weapon.name}");
+            }
+            else
+            {
+                Debug.LogError("Button prefab is missing a Button component!");
+            } 
         }
     }
 
     private void SelectWeapon(GameObject weapon,string category)
     {
+        UnityEngine.Debug.Log("Selected weapon: " + weapon.name + " from category: " + category);
         switch (category){
             case "melee":
+                UnityEngine.Debug.Log("Melee weapon selected: " + weapon.name);
                 selections[1] = weapon;
                 break;
-            case "ranged":  
+            case "ranged":
+                UnityEngine.Debug.Log("Ranged weapon selected: " + weapon.name);  
                 selections[0] = weapon;
                 break;
-            case "misc":    
+            case "misc":
+                UnityEngine.Debug.Log("Misc weapon selected: " + weapon.name);    
                 selections[2] = weapon;
                 break;
         }
@@ -135,6 +180,9 @@ public class WeaponSelection : NetworkBehaviour
             weaponInstance.transform.localPosition = Vector3.zero; // Adjust position if needed
             weaponInstance.transform.localRotation = Quaternion.identity; // Adjust rotation if needed
         }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
 
         Debug.Log("Weapons successfully attached to the player's weaponHolder.");
     }

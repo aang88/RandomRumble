@@ -105,6 +105,7 @@ public class GameStateManager : NetworkBehaviour
                 break;
             case GameState.RoundPlaying:
                 CountDown();
+                LockCursor();
                 if (CheckRoundEnd())
                 {
                     // Add this line to check deaths ONCE before changing state
@@ -117,8 +118,10 @@ public class GameStateManager : NetworkBehaviour
                 ProcessRoundEnd();
                 break;
             case GameState.ItemPick: // Handle weapon selection
+                
                 if (!weaponSelectionTriggered)
                 {
+                     UnlockCursorForAllClients();
                     TriggerWeaponSelection();
                     weaponSelectionTriggered = true; // Set the flag to prevent repeated calls
                 }
@@ -128,6 +131,33 @@ public class GameStateManager : NetworkBehaviour
                 ShowWinScreen();
                 HideText();
                 break;
+        }
+    }
+
+    private void UnlockCursor()
+    {
+        PlayerCam playerCam = FindObjectOfType<PlayerCam>();
+        UnityEngine.Debug.Log("CURSOR: Unlocking cursor for weapon selection. Playercam: " + playerCam);
+        if (playerCam != null)
+        {
+            playerCam.SetUIState(true);
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        Debug.Log("Cursor unlocked for weapon selection.");
+    }
+
+    private void LockCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        Debug.Log("Cursor locked.");
+
+        PlayerCam playerCam = FindObjectOfType<PlayerCam>();
+        if (playerCam != null)
+        {
+            playerCam.SetUIState(false);
         }
     }
 

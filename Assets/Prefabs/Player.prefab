@@ -401,7 +401,6 @@ MonoBehaviour:
   - {fileID: 7612949761273126356}
   - {fileID: 7612949762858392637}
   - {fileID: 7612949762858392636}
-  - {fileID: 0}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -426,7 +425,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 0
+  <PrefabId>k__BackingField: 5
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 7807759643866311769
   <SceneId>k__BackingField: 0
@@ -570,8 +569,8 @@ MonoBehaviour:
   - {fileID: 5706175537438828041, guid: 2a27c300fd907e344be0964571013203, type: 3}
   - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
   - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
-  buttonPrefab: {fileID: 2208277893782286228, guid: e200411f24da54447b8d8ded6c13855a, type: 3}
-  buttonParent: {fileID: 5672801567198763111, guid: d459750388d35914eb3bb8af9c1b0cf5, type: 3}
+  buttonPrefab: {fileID: 4769672001757064923, guid: 337e8043b4ddc544f8dfb03dc72d73fe, type: 3}
+  buttonParent: {fileID: 0}
   weaponHolder: {fileID: 7612949762858392634}
 --- !u!1 &7612949762858392635
 GameObject:
