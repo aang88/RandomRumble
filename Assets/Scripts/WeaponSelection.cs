@@ -25,6 +25,9 @@ public class WeaponSelection : NetworkBehaviour
     private List<GameObject> OriginalMeeleWeapons;
     private List<GameObject> OriginalRangedWeapons;
     private List<GameObject> OriginalMiscWeapons;
+
+    private bool hasGeneratedWeapons = false;
+
     // Start is called before the first frame update
     public override void OnStartClient()
     {
@@ -49,12 +52,21 @@ public class WeaponSelection : NetworkBehaviour
         
     }
 
-    public void PickRandomWeaponPool(){
-        // Randomly select 3 weapons from the list
+    public void PickRandomWeaponPool()
+    {
+        if (hasGeneratedWeapons)
+        {
+            Debug.Log("Weapon pool has already been generated. Skipping.");
+            return;
+        }
+
+        hasGeneratedWeapons = true;
+
         Debug.Log("PickRandomWeaponPool called.");
         Debug.Log($"MeeleWeapons count: {MeeleWeapons.Count}");
         Debug.Log($"RangedWeapons count: {RangedWeapons.Count}");
         Debug.Log($"MiscWeapons count: {MiscWeapons.Count}");
+
         for (int i = 0; i < 2; i++)
         {
             PickRandomWeapon(ref MeeleWeapons, ref PossibleMeeles, i);
@@ -66,6 +78,7 @@ public class WeaponSelection : NetworkBehaviour
         CreateWeaponButtons(PossibleGuns, "ranged");
         CreateWeaponButtons(PossibleMiscs, "misc");
     }
+
 
     public void PickRandomWeapon(ref List<GameObject> weaponPool,ref GameObject[] weaponSelecitons, int iteration){
         if (weaponPool == null || weaponPool.Count == 0)

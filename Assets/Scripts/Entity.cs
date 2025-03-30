@@ -94,6 +94,25 @@ public class Entity : NetworkBehaviour
         }
     }
 
+
+    [ObserversRpc] 
+    public void RpcToggleCanvas(bool isPlayer1, bool isVisible)
+    {
+        UnityEngine.Debug.Log("Canvas toggle called ");
+        // Find the Canvas component in the player entity
+        Canvas playerCanvas = GetComponentInChildren<Canvas>();
+        if (playerCanvas == null)
+        {
+            UnityEngine.Debug.LogWarning("Canvas not found for " + gameObject.name);
+        }
+        // Set the canvas active or inactive based on visibility
+        if (playerCanvas != null)
+        {
+            UnityEngine.Debug.Log("Toggled it");
+            playerCanvas.gameObject.SetActive(isVisible);
+        }
+    }
+
     [ObserversRpc]
     private void NotifyHitObserversRpc(NetworkObject hitEntity, float damage)
     {

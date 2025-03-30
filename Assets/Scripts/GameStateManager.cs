@@ -35,6 +35,7 @@ public class GameStateManager : NetworkBehaviour
     public float startingTime = 40f;
 
     [Header("UI Elements")]
+    public Canvas UICanvas;
     public RawImage winScreen;
     public Text TimeLeftText;
     public Text Health1;
@@ -59,8 +60,12 @@ public class GameStateManager : NetworkBehaviour
     {
 
         // Subscribe to the SyncVar change event
-        
 
+        if (UICanvas != null)
+        {
+            Debug.Log("CALLLING THIS");
+            UICanvas.gameObject.SetActive(false);  // Deactivates the entire canvas GameObject
+        }
         // Initialize player weapons dictionary
         playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
     }
@@ -317,12 +322,29 @@ public class GameStateManager : NetworkBehaviour
         }
     }
 
-    // Remove the incorrect attribute and keep the method as is
     private void OnGameStateChanged(GameState oldState, GameState newState, bool asServer)
     {
         UnityEngine.Debug.Log("State changed to: " + newState);
         UpdateUIValues();
+
+        // Show the canvas at the start of the round
+        if (newState == GameState.RoundStart || newState == GameState.RoundPlaying)
+        {
+            if (UICanvas != null)
+            {
+                UICanvas.gameObject.SetActive(true);  //activates the entire canvas GameObject
+            }
+        }
+        // Hide the canvas when the round ends (any state other than RoundStart)
+        else if (oldState == GameState.RoundStart && newState != GameState.RoundStart)
+        {
+            if (UICanvas != null)
+            {
+                UICanvas.gameObject.SetActive(false);  // Deactivates the entire canvas GameObject
+            }
+        }
     }
+
 
     public void AddPlayer(Entity playerEntity)
     {

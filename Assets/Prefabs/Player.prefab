@@ -401,7 +401,6 @@ MonoBehaviour:
   - {fileID: 7612949761273126356}
   - {fileID: 7612949762858392637}
   - {fileID: 7612949762858392636}
-  - {fileID: 0}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -426,7 +425,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 0
+  <PrefabId>k__BackingField: 5
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 7807759643866311769
   <SceneId>k__BackingField: 0
@@ -621,7 +620,7 @@ MonoBehaviour:
   _componentIndexCache: 6
   _addedNetworkObject: {fileID: 4925201814354678423}
   _networkObjectCache: {fileID: 4925201814354678423}
-  Meele: {fileID: 0}
+  Meele: {fileID: 4941971553626675561, guid: 3eaa137a7959b6c4dad12db6b0f69005, type: 3}
   CanAttack: 1
   AttackCooldown: 1
   isAttacking: 0
@@ -635,7 +634,7 @@ MonoBehaviour:
   BlockDuration: 0
   isPlayer: 1
   autoAttack: 0
-  collisionDetection: {fileID: 0}
+  collisionDetection: {fileID: 4941971553626675566, guid: 3eaa137a7959b6c4dad12db6b0f69005, type: 3}
 --- !u!114 &7612949762858392636
 MonoBehaviour:
   m_ObjectHideFlags: 0
