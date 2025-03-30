@@ -19,6 +19,8 @@ public class WeaponSwitch : NetworkBehaviour
     // Track selected weapon across network
     private int selectedWeapon = 0;
     private float timeSinceLastSwitch;
+
+    private bool weaponsSet = false;
     
     public override void OnStartClient()
     {
@@ -32,6 +34,8 @@ public class WeaponSwitch : NetworkBehaviour
         }
     }
 
+    
+
     private void SetWeapons()
     {
         weapons = new Transform[transform.childCount];
@@ -40,13 +44,22 @@ public class WeaponSwitch : NetworkBehaviour
         {
             weapons[i] = transform.GetChild(i);
         }
+        
 
         if (keys == null) keys = new KeyCode[weapons.Length];
+        if(transform.childCount==3){
+            weaponsSet = true;
+        }
+
     }
 
     private void Update()
     {
         if (!IsOwner) return;
+
+        if(!weaponsSet){
+            SetWeapons();
+        }
         
         int previousSelectedWeapon = selectedWeapon;
 

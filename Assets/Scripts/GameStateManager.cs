@@ -62,11 +62,8 @@ public class GameStateManager : NetworkBehaviour
 
         // Subscribe to the SyncVar change event
 
-        if (UICanvas != null)
-        {
-            Debug.Log("CALLLING THIS");
-            UICanvas.gameObject.SetActive(false);  // Deactivates the entire canvas GameObject
-        }
+        
+        
         // Initialize player weapons dictionary
         playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
     }
@@ -82,6 +79,9 @@ public class GameStateManager : NetworkBehaviour
 
         if (!playersInitialized)
         {
+            GameObject buttonParent = GameObject.Find("ButtonParent");
+
+            HideAllButButtonParent(UICanvas, buttonParent);
             UnityEngine.Debug.Log(player1 + " " + player2);
             UnityEngine.Debug.Log("Players not initialized yet.");
             return;
@@ -123,7 +123,7 @@ public class GameStateManager : NetworkBehaviour
                 ProcessRoundEnd();
                 break;
             case GameState.ItemPick: // Handle weapon selection
-                
+               
                 if (!weaponSelectionTriggered)
                 {
                     UnlockCursorForAllClients();
@@ -170,6 +170,22 @@ public class GameStateManager : NetworkBehaviour
         if (playerCam != null)
         {
             playerCam.SetUIState(false);
+        }
+    }
+
+    private void HideAllButButtonParent(Canvas canvas, GameObject buttonParent)
+    {
+        foreach (Transform child in canvas.transform)
+        {
+            // Check if the child is the buttonParent
+            if (child.gameObject == buttonParent)
+            {
+                child.gameObject.SetActive(true); // Keep buttonParent active
+            }
+            else
+            {
+                child.gameObject.SetActive(false); // Hide all other children
+            }
         }
     }
 
@@ -374,7 +390,7 @@ public class GameStateManager : NetworkBehaviour
         {
             if (UICanvas != null)
             {
-                UICanvas.gameObject.SetActive(true);  //activates the entire canvas GameObject
+                EnableAllChildren();  //activates the entire canvas GameObject
             }
         }
         // Hide the canvas when the round ends (any state other than RoundStart)
@@ -385,6 +401,22 @@ public class GameStateManager : NetworkBehaviour
                 UICanvas.gameObject.SetActive(false);  // Deactivates the entire canvas GameObject
             }
         }
+    }
+
+    private void EnableAllChildren()
+    {
+        if (UICanvas == null)
+        {
+            Debug.LogError("Canvas is null. Cannot enable children.");
+            return;
+        }
+
+        foreach (Transform child in UICanvas.transform)
+        {
+            child.gameObject.SetActive(true);
+        }
+
+        Debug.Log("All children of the canvas have been enabled.");
     }
 
 

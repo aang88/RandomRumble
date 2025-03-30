@@ -15,69 +15,113 @@ public class CollisionDetection : MonoBehaviour
     private float lastHitTime = 0f;
     private float hitCooldown = 0.5f;
     private HashSet<Collider> hitColliders = new HashSet<Collider>();
+    private float colliderActiveRadius = 0.25f; // Used for additional overlap checks
 
     private void Start()
     {
+        if (wp == null)
+        {
+            wp = GetComponentInParent<WeaponController>();
+            if (wp == null)
+            {
+                UnityEngine.Debug.LogError("WeaponController (wp) is not assigned and could not be found in parent.");
+                return;
+            }
+        }
+
         weaponOwner = wp.weaponOwner;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        UnityEngine.Debug.Log("Weapon Trigger with: " + other.name + ", Tag: " + other.tag);
+        CheckForHit(other);
+    }
+    
+    private void OnTriggerStay(Collider other)
+    {
+        // Also check hits during stay - helps with fast moving weapons
+        CheckForHit(other);
+    }
 
-        if (wp == null)
+    private void Update()
+    {
+        // Additional hit detection using manual sphere overlap
+        // This helps catch hits that might be missed by standard collision detection
+        if (wp != null && wp.isAttacking && !hasHit && Time.time > lastHitTime + hitCooldown)
         {
-            UnityEngine.Debug.LogError("WeaponController reference is missing on CollisionDetection");
-            return;
+            PerformAdditionalHitDetection();
         }
+    }
+    
+    private void PerformAdditionalHitDetection()
+    {
+        // Use sphere overlap for additional hit detection
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, colliderActiveRadius);
+        foreach (Collider col in hitColliders)
+        {
+            // Skip if not a valid target
+            if (!col.CompareTag("Enemy") && !col.CompareTag("Player"))
+                continue;
+                
+            // Skip if it's our own collider or parent
+            if (col.transform == weaponOwner || col.transform.IsChildOf(weaponOwner))
+                continue;
+                
+            // Process as a hit
+            CheckForHit(col);
+        }
+    }
+    
+    private void CheckForHit(Collider other)
+    {
+        // Skip processing if weapon is inactive or already hit something
+        if (wp == null || !wp.isAttacking || hasHit || Time.time <= lastHitTime + hitCooldown)
+            return;
 
         NetworkBehaviour ownerNetBehaviour = weaponOwner?.GetComponent<NetworkBehaviour>();
         bool isLocallyControlled = ownerNetBehaviour != null && ownerNetBehaviour.IsOwner;
 
         // Only register hits from locally controlled players
-        if (other.CompareTag("Enemy") && wp.isAttacking && !hasHit &&
-            Time.time > lastHitTime + hitCooldown && !hitColliders.Contains(other) &&
-            isLocallyControlled)
+        if ((other.CompareTag("Enemy") || other.CompareTag("Player")) && 
+            isLocallyControlled && 
+            !this.hitColliders.Contains(other))
         {
             // Skip if hitting self
             if (other.transform == weaponOwner || other.transform.IsChildOf(weaponOwner))
             {
-                UnityEngine.Debug.Log("Skipping hit on self: " + other.name);
                 return;
             }
             
-            // Valid hit - mark it and apply damage through network
-            hitColliders.Add(other);
+            // Valid hit detected
+            this.hitColliders.Add(other);
             hasHit = true;
             lastHitTime = Time.time;
+            
+            UnityEngine.Debug.Log("VALID HIT DETECTED on: " + other.name);
             
             // Try to get the entity to damage
             Entity entityToDamage = other.GetComponentInParent<Entity>();
             if (entityToDamage != null)
             {
+                UnityEngine.Debug.Log("Found entity to damage: " + entityToDamage.name);
+
                 // Apply damage through network - find the NetworkObject first
                 NetworkObject networkObj = entityToDamage.GetComponent<NetworkObject>();
                 if (networkObj != null)
                 {
-                    // Get the player's NetworkBehaviour component to call the RPC
-                    NetworkBehaviour playerNetworkComponent = weaponOwner.GetComponent<NetworkBehaviour>();
-                    if (playerNetworkComponent != null)
+                    // Get the player's Entity component to call the RPC
+                    Entity playerEntity = weaponOwner.GetComponent<Entity>();
+                    if (playerEntity != null)
                     {
-                        // Call through a method that will use the ServerRpc
-                        Entity playerEntity = weaponOwner.GetComponent<Entity>();
-                        if (playerEntity != null)
+                        UnityEngine.Debug.Log("Calling RequestHitEntityServerRpc with damage: " + Damage);
+                        playerEntity.RequestHitEntityServerRpc(networkObj, Damage);
+                        
+                        // Visual feedback
+                        if (HitParticle != null)
                         {
-                            playerEntity.RequestHitEntityServerRpc(networkObj, Damage);
+                            Instantiate(HitParticle, other.ClosestPoint(transform.position), Quaternion.identity);
                         }
                     }
-                }
-
-                // Spawn hit effect locally (all clients will handle their own effects)
-                Vector3 hitPoint = other.ClosestPointOnBounds(transform.position);
-                if (HitParticle != null)
-                {
-                    GameObject hitEffect = GameObject.Instantiate(HitParticle, hitPoint, Quaternion.identity);
-                    GameObject.Destroy(hitEffect, 1f);
                 }
             }
         }
@@ -85,12 +129,20 @@ public class CollisionDetection : MonoBehaviour
 
     public void DisableWeapon()
     {
-        gameObject.SetActive(false);
+        wp.isAttacking = false;
+        ResetHit();
     }
 
     public void ResetHit()
     {
         hasHit = false;
         hitColliders.Clear();
+    }
+    
+    // For debugging hit detection regions
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, colliderActiveRadius);
     }
 }

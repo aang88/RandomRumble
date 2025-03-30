@@ -25,7 +25,7 @@ public class WeaponController : NetworkBehaviour
     public float LastBlockTime = 0f;
     public float BlockDuration = 0f;
     public bool isPlayer;
-    
+    public bool meeleIsSet = false;
     public bool autoAttack = false;
 
     public CollisionDetection collisionDetection;
@@ -69,6 +69,33 @@ public class WeaponController : NetworkBehaviour
         if (isPlayer && IsOwner)
         {
             CheckBlocktimeServerRpc();
+
+            if(!meeleIsSet){
+                if (transform.childCount == 3)
+                {
+                    Meele = transform.GetChild(1).gameObject; // Get the second child (index 1)
+                    Debug.Log($"Meele set to: {Meele.name}");
+                    meeleIsSet = true;
+                }
+                else
+                {
+                    Debug.LogError("WeaponController does not have a second child to assign as Meele.");
+                }
+
+                // Assign collisionDetection to the CollisionDetection script on Meele
+                if (Meele != null)
+                {
+                    collisionDetection = Meele.GetComponent<CollisionDetection>();
+                    if (collisionDetection != null)
+                    {
+                        Debug.Log("CollisionDetection script assigned successfully.");
+                    }
+                    else
+                    {
+                        Debug.LogError("Meele does not have a CollisionDetection script attached.");
+                    }
+                }
+            }
 
             if (Input.GetMouseButtonDown(0))
             {

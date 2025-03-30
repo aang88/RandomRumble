@@ -97,7 +97,7 @@ GameObject:
   - component: {fileID: 1718404626046089240}
   - component: {fileID: 8402207160177410723}
   m_Layer: 0
-  m_Name: SciFiGun_Diffuse
+  m_Name: Pistol
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -247,7 +247,7 @@ MonoBehaviour:
   _teleportThreshold: 1
   <PrefabId>k__BackingField: 1
   <SpawnableCollectionId>k__BackingField: 0
-  <AssetPathHash>k__BackingField: 4721159336110462185
+  <AssetPathHash>k__BackingField: 11730447681827997413
   <SceneId>k__BackingField: 0
   SerializedTransformProperties:
     Position: {x: 0.11900079, y: -0.028000355, z: 0.20999914}

@@ -6,17 +6,21 @@ using FishNet.Object;
 using FishNet.Connection;
 using FishNet.Object.Synchronizing;
 using FishNet.Component.Transforming;
+using System.Linq;
 public class WeaponSelection : NetworkBehaviour
 {
     public List<GameObject> MeeleWeapons = new List<GameObject>();
     public List<GameObject> RangedWeapons = new List<GameObject>();
     public List<GameObject> MiscWeapons = new List<GameObject>();
     private GameObject[] selections = new GameObject[3];
+    private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
 
     public GameObject buttonPrefab; 
     public RectTransform buttonParent; 
 
     public Transform weaponHolder;
+
+    private bool weaponConfirmed = false;
 
     private GameObject[] PossibleMeeles = new GameObject[3];
     private GameObject[] PossibleGuns = new GameObject[3];
@@ -41,12 +45,13 @@ public class WeaponSelection : NetworkBehaviour
         Debug.Log($"WeaponSelection OnStartClient. IsOwner: {IsOwner}");
     }
 
-   
-
     // Update is called once per frame
     void Update()
     {
-        
+        if (!weaponConfirmed && IsOwner)
+        {
+            ConfirmSelection();
+        }
     }
 
     void Start()
@@ -120,7 +125,6 @@ public class WeaponSelection : NetworkBehaviour
             if (weapon == null) continue;
             // Debug.Log($"Button instantiated for weapon: {weapon.name}, Category: {category}");
 
-
             // Instantiate a button
             GameObject button = Instantiate(buttonPrefab, buttonParent);
 
@@ -166,13 +170,18 @@ public class WeaponSelection : NetworkBehaviour
         {
             if (weapon == null)
             {
-                Debug.LogWarning("Not all weapons have been selected!");
+                Debug.LogWarning("Not all weapons have been selected! Current selections: " +
+                             string.Join(", ", selections.Select(w => w != null ? w.name : "null")));
                 return;
             }
         }
+        weaponConfirmed = true;
 
-        SubmitWeaponSelectionServerRpc(selections);
+        Debug.Log("All weapons selected: " + string.Join(", ", selections.Select(w => w.name)));
 
+        // Send weapon names instead of GameObject references
+        string[] weaponNames = selections.Select(w => w.name).ToArray();
+        SubmitWeaponSelectionServerRpc(weaponNames);
 
         for (int i = 0; i < selections.Length; i++)
         {
@@ -184,6 +193,15 @@ public class WeaponSelection : NetworkBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
+        // Remove or deactivate the buttonParent
+        if (buttonParent != null)
+        {
+            Destroy(buttonParent.gameObject); // Completely removes the buttonParent and its children
+            // Alternatively, deactivate it:
+            // buttonParent.gameObject.SetActive(false);
+            Debug.Log("buttonParent has been removed or deactivated.");
+        }
+
         Debug.Log("Weapons successfully attached to the player's weaponHolder.");
     }
 
@@ -194,15 +212,114 @@ public class WeaponSelection : NetworkBehaviour
             GameObject weaponInstance = Instantiate(weapon, weaponHolder);
             weaponInstance.transform.localPosition = Vector3.zero;
             weaponInstance.transform.localRotation = Quaternion.identity;
+            Debug.Log($"Weapon {weapon.name} instantiated and aligned for player {gameObject.name}");
+
         }
 
         Debug.Log("Weapons successfully assigned to the player's weaponHolder.");
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void SubmitWeaponSelectionServerRpc(GameObject[] selectedWeapons, NetworkConnection sender = null)
+    private void SubmitWeaponSelectionServerRpc(string[] weaponNames, NetworkConnection sender = null)
     {
+        if (sender == null)
+        {
+            Debug.LogError("SubmitWeaponSelectionServerRpc called without a valid sender.");
+            return;
+        }
+
+        if (weaponNames == null || weaponNames.Length == 0)
+        {
+            Debug.LogError($"SubmitWeaponSelectionServerRpc called by player {sender.ClientId}, but weaponNames is null or empty.");
+            return;
+        }
+
+        // Check for null or empty elements in the array
+        if (weaponNames.Any(string.IsNullOrEmpty))
+        {
+            Debug.LogError($"SubmitWeaponSelectionServerRpc called by player {sender.ClientId}, but one or more weapon names is null or empty.");
+            return;
+        }
+
+        Debug.Log($"SubmitWeaponSelectionServerRpc called by player {sender.ClientId} with weapons: {string.Join(", ", weaponNames)}");
+
+        // Convert weapon names back to GameObject references
+        GameObject[] selectedWeapons = new GameObject[weaponNames.Length];
+        for (int i = 0; i < weaponNames.Length; i++)
+        {
+            string weaponName = weaponNames[i];
+            
+            // Find the weapon GameObject from the available pools
+            GameObject weapon = FindWeaponByName(weaponName);
+            
+            if (weapon == null)
+            {
+                Debug.LogError($"Could not find weapon with name {weaponName} for player {sender.ClientId}");
+                return;
+            }
+            
+            selectedWeapons[i] = weapon;
+        }
+
+        // Store the player's selected weapons on the server
         GameStateManager.Instance.StorePlayerWeapons(sender, selectedWeapons);
+
+        // Broadcast the selected weapons to all clients
+        SyncSelectedWeaponsObserversRpc(weaponNames, sender);
+    }
+
+    // Helper method to find weapon GameObject by name
+    private GameObject FindWeaponByName(string weaponName)
+    {
+        // Search in all weapon pools
+        foreach (var weapon in MeeleWeapons)
+        {
+            if (weapon != null && weapon.name == weaponName)
+                return weapon;
+        }
+        
+        foreach (var weapon in RangedWeapons)
+        {
+            if (weapon != null && weapon.name == weaponName)
+                return weapon;
+        }
+        
+        foreach (var weapon in MiscWeapons)
+        {
+            if (weapon != null && weapon.name == weaponName)
+                return weapon;
+        }
+        
+        return null;
+    }
+
+    [ObserversRpc]
+    private void SyncSelectedWeaponsObserversRpc(string[] weaponNames, NetworkConnection sender)
+    {
+        Debug.Log($"Syncing weapons for player {sender.ClientId} on all clients: {string.Join(", ", weaponNames)}");
+        
+        if (!IsOwner)
+        {
+            Debug.Log($"Weapons assigned for player {sender.ClientId} on client {NetworkManager.ClientManager.Connection.ClientId}");
+            
+            // Convert weapon names back to GameObject references
+            GameObject[] selectedWeapons = new GameObject[weaponNames.Length];
+            for (int i = 0; i < weaponNames.Length; i++)
+            {
+                GameObject weapon = FindWeaponByName(weaponNames[i]);
+                if (weapon != null)
+                {
+                    selectedWeapons[i] = weapon;
+                }
+                else
+                {
+                    Debug.LogError($"Could not find weapon with name {weaponNames[i]} on client");
+                    return;
+                }
+            }
+            
+            AssignWeapons(selectedWeapons);
+        }
     }
 
     private void ResetWeaponPool(List<GameObject> otherPlayerWeapons)
@@ -219,6 +336,6 @@ public class WeaponSelection : NetworkBehaviour
             MiscWeapons.Remove(weapon);
         }
 
-        Debug.Log("Weapon pools have been reset for re-picking, excluding other player's weapons.");
+        UnityEngine.Debug.Log("Weapon pools have been reset for re-picking, excluding other player's weapons.");
     }
 }
