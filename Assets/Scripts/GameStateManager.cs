@@ -121,7 +121,7 @@ public class GameStateManager : NetworkBehaviour
                 
                 if (!weaponSelectionTriggered)
                 {
-                     UnlockCursorForAllClients();
+                    UnlockCursorForAllClients();
                     TriggerWeaponSelection();
                     weaponSelectionTriggered = true; // Set the flag to prevent repeated calls
                 }
@@ -132,6 +132,13 @@ public class GameStateManager : NetworkBehaviour
                 HideText();
                 break;
         }
+    }
+
+    [ObserversRpc]
+    private void UnlockCursorForAllClients()
+    {
+        Debug.Log("UnlockCursorForAllClients called on all clients.");
+        UnlockCursor();
     }
 
     private void UnlockCursor()
