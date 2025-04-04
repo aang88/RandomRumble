@@ -42,6 +42,11 @@ public class WeaponSelection : NetworkBehaviour
             Debug.Log($"ButtonPrefab is assigned: {buttonPrefab.name} on {gameObject.name}, InstanceID: {GetInstanceID()}");
         }
         base.OnStartClient();
+        if (!IsServer)
+        {
+            Debug.Log("Requesting inventory from the server...");
+            RequestInventoryServerRpc(NetworkManager.ClientManager.Connection);
+        }
         Debug.Log($"WeaponSelection OnStartClient. IsOwner: {IsOwner}");
     }
 
@@ -88,6 +93,16 @@ public class WeaponSelection : NetworkBehaviour
         Debug.Log($"MeeleWeapons count: {MeeleWeapons.Count}");
         Debug.Log($"RangedWeapons count: {RangedWeapons.Count}");
         Debug.Log($"MiscWeapons count: {MiscWeapons.Count}");
+        
+        StartCoroutine(DelayedUISetup());
+    
+    }
+
+    private IEnumerator DelayedUISetup()
+    {
+        // Short delay to ensure everything is properly initialized
+        yield return new WaitForSeconds(0.1f);
+        
         for (int i = 0; i < 3; i++)
         {
             PickRandomWeapon(ref MeeleWeapons, ref PossibleMeeles, i);
@@ -98,6 +113,17 @@ public class WeaponSelection : NetworkBehaviour
         CreateWeaponButtons(PossibleMeeles, "melee");
         CreateWeaponButtons(PossibleGuns, "ranged");
         CreateWeaponButtons(PossibleMiscs, "misc");
+        
+        // Force UI refresh
+        Canvas canvas = buttonParent.GetComponentInParent<Canvas>();
+        if (canvas != null)
+        {
+            yield return new WaitForEndOfFrame();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(buttonParent);
+            canvas.enabled = false;
+            canvas.enabled = true;
+            Debug.Log("Canvas forcefully refreshed after button creation");
+        }
     }
 
     public void PickRandomWeapon(ref List<GameObject> weaponPool,ref GameObject[] weaponSelecitons, int iteration){
@@ -123,13 +149,17 @@ public class WeaponSelection : NetworkBehaviour
         {
             //  Debug.Log("weapon: "+ weapon + "category: " + category);
             if (weapon == null) continue;
-            // Debug.Log($"Button instantiated for weapon: {weapon.name}, Category: {category}");
+            Debug.Log($"Button instantiated for weapon: {weapon.name}, Category: {category}");
 
             // Instantiate a button
             GameObject button = Instantiate(buttonPrefab, buttonParent);
 
             // Set the button's text to the weapon's name
             button.GetComponentInChildren<Text>().text = weapon.name;
+            Debug.Log($"Setting Button text to: {weapon.name}");
+      
+
+
 
             // // Add a click event to the button
             Button buttonComponent = button.GetComponent<Button>();
@@ -319,6 +349,46 @@ public class WeaponSelection : NetworkBehaviour
             }
             
             AssignWeapons(selectedWeapons);
+        }
+    }
+
+    public void UpdateLocalInventory(string[] weaponNames)
+    {
+        Debug.Log($"Updating local inventory: {string.Join(", ", weaponNames)}");
+
+        // Convert weapon names back to GameObjects
+        GameObject[] selectedWeapons = weaponNames
+            .Select(name => FindWeaponByName(name))
+            .Where(weapon => weapon != null)
+            .ToArray();
+
+        AssignWeapons(selectedWeapons);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestInventoryServerRpc(NetworkConnection conn)
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError("GameStateManager instance is null. Cannot access player inventories.");
+            return;
+        }
+
+        foreach (var entry in GameStateManager.Instance.PlayerInventories)
+        {
+            TargetSyncInventoryRpc(conn, entry.Key, entry.Value);
+        }
+    }
+
+    [TargetRpc]
+    private void TargetSyncInventoryRpc(NetworkConnection target, NetworkConnection playerConn, string[] weaponNames)
+    {
+        Debug.Log($"Sending inventory to player {target.ClientId} for player {playerConn.ClientId}: {string.Join(", ", weaponNames)}");
+
+        WeaponSelection weaponSelection = playerConn.FirstObject.GetComponent<WeaponSelection>();
+        if (weaponSelection != null)
+        {
+            weaponSelection.UpdateLocalInventory(weaponNames);
         }
     }
 

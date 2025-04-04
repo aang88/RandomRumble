@@ -6,7 +6,7 @@ using FishNet.Object;
 using FishNet.Connection;
 using FishNet.Serializing;
 using FishNet.Object.Synchronizing;
-
+using System.Linq;
 public class GameStateManager : NetworkBehaviour
 {
     public enum GameState
@@ -45,8 +45,9 @@ public class GameStateManager : NetworkBehaviour
     private bool weaponSelectionTriggered = false;
 
     private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
+    private Dictionary<NetworkConnection, string[]> _playerInventories = new Dictionary<NetworkConnection, string[]>();
 
-
+    public Dictionary<NetworkConnection, string[]> PlayerInventories => _playerInventories;
     public Entity player1;
     public Entity player2;
     public Transform player1SpawnPoint;
@@ -191,20 +192,46 @@ public class GameStateManager : NetworkBehaviour
 
     public void StorePlayerWeapons(NetworkConnection conn, GameObject[] selectedWeapons)
     {
-        if (playerWeapons.ContainsKey(conn))
+        if (selectedWeapons == null || selectedWeapons.Length == 0)
         {
-            playerWeapons[conn] = selectedWeapons;
-        }
-        else
-        {
-            playerWeapons.Add(conn, selectedWeapons);
+            Debug.LogError($"StorePlayerWeapons called with null or empty weapons for player {conn.ClientId}");
+            return;
         }
 
-        Debug.Log($"Stored weapons for player {conn.ClientId}");
+        string[] weaponNames = selectedWeapons.Select(w => w.name).ToArray();
+        _playerInventories[conn] = weaponNames;
 
-        // Check if all players have selected their weapons
-        CheckAllPlayersReady();
+        Debug.Log($"Server: Stored weapons for player {conn.ClientId}: {string.Join(", ", weaponNames)}");
     }
+
+    public string[] GetPlayerWeapons(NetworkConnection conn)
+    {
+        if (_playerInventories.TryGetValue(conn, out string[] weaponNames))
+        {
+            return weaponNames;
+        }
+
+        Debug.LogWarning($"No weapons found for player {conn.ClientId}");
+        return new string[0];
+    }
+
+
+    [ObserversRpc]
+    public void SyncPlayerInventoryObserversRpc(NetworkConnection conn, string[] weaponNames)
+    {
+        Debug.Log($"Syncing inventory for player {conn.ClientId} on all clients: {string.Join(", ", weaponNames)}");
+
+        // Update the local inventory for the player
+        if (IsOwner)
+        {
+            WeaponSelection weaponSelection = conn.FirstObject.GetComponent<WeaponSelection>();
+            if (weaponSelection != null)
+            {
+                weaponSelection.UpdateLocalInventory(weaponNames);
+            }
+        }
+    }
+
 
     private void CheckAllPlayersReady()
     {
