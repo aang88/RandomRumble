@@ -50,9 +50,27 @@ public class WeaponController : NetworkBehaviour
     {
         Debug.Log($"isBlocking changed from {previousValue} to {newValue} (asServer: {asServer})");
 
+        // Check if Meele is null
+        if (Meele == null)
+        {
+            RefreshWeaponReferences();
+            if (Meele == null)
+            {
+                Debug.LogError("Cannot update blocking animation - Meele reference is null");
+                return;
+            }
+        }
+
         // Update animations or other logic based on the new value
         Animator anim = Meele.GetComponent<Animator>();
-        anim.SetBool("IsBlocking", newValue);
+        if (anim != null)
+        {
+            anim.SetBool("IsBlocking", newValue);
+        }
+        else
+        {
+            Debug.LogError($"Cannot update blocking animation - No Animator component found on {Meele.name}");
+        }
     }
 
     void Start()
@@ -73,12 +91,11 @@ public class WeaponController : NetworkBehaviour
 
     void Update()
     {
-        Debug.Log($" isBlocking.Value = {isBlocking.Value}");
         if (isPlayer && IsOwner)
         {
             CheckBlocktimeServerRpc();
 
-            if(!meeleIsSet){
+            if (!meeleIsSet) {
                 if (transform.childCount == 3)
                 {
                     Meele = transform.GetChild(1).gameObject; // Get the second child (index 1)
@@ -107,7 +124,7 @@ public class WeaponController : NetworkBehaviour
 
             if (Input.GetMouseButtonDown(0))
             {
-                if (CanAttack && !isBlocking.Value) // Use .Value to read the SyncVar
+                if (CanAttack && !isBlocking.Value)
                 {
                     MeeleAttack();
                     AttackServerRpc(true);
@@ -116,20 +133,26 @@ public class WeaponController : NetworkBehaviour
 
             if (Input.GetMouseButton(1))
             {
-                if (CanBlock && !isAttacking)
+                if (CanBlock && !isAttacking && !isBlocking.Value)
                 {
                     LastBlockTime = Time.time;
                     BlockDuration += Time.deltaTime;
                     UpdateBlockDurationServerRpc(BlockDuration);
+                    
+                    // Call Block() once - it will update the server
                     Block();
-                    BlockServerRpc(true);
+                }
+                else if (isBlocking.Value)
+                {
+                    // Update the block duration while holding
+                    BlockDuration += Time.deltaTime;
+                    UpdateBlockDurationServerRpc(BlockDuration);
                 }
             }
-
-            if (Input.GetMouseButtonUp(1) && isBlocking.Value) // Use .Value to read the SyncVar
+            else if (isBlocking.Value) // If not pressing mouse button but still blocking
             {
+                // Call StopBlocking() once - it will update the server
                 StopBlocking();
-                BlockServerRpc(false);
             }
 
             if (Input.GetKeyDown(KeyCode.E))
@@ -153,18 +176,21 @@ public class WeaponController : NetworkBehaviour
     
     private void StopBlocking()
     {
-        // UnityEngine.Debug.Log("StopBlocking");
-        SetBlocking(false); // Use .Value to set the SyncVar
+        // Only set the SyncVar if we're the owner
+        if (IsOwner)
+        {
+            SetBlocking(false);
+        }
+        
         CanBlock = false;
-        BlockServerRpc(false);
         BlockDuration = 0f;
         UpdateBlockDurationServerRpc(0f);
-        Animator anim = Meele.GetComponent<Animator>();
-        anim.SetBool("IsBlocking", false);
+        
+        // Don't update animation locally - let the SyncVar callback handle it
+        
         StartCoroutine(ResetBlockCooldown());
     }
 
-  
     [ServerRpc]
     public void CheckBlocktimeServerRpc()
     {
@@ -211,10 +237,14 @@ public class WeaponController : NetworkBehaviour
     public void Block()
     {
         if (!CanBlock || isAttacking) return;
-        print("Blocking");
-        SetBlocking(true); // Use .Value to set the SyncVar
-        Animator anim = Meele.GetComponent<Animator>();
-        anim.SetBool("IsBlocking", true);
+        
+        // Only set the SyncVar if we're the owner
+        if (IsOwner)
+        {
+            SetBlocking(true);
+        }
+        
+        // Don't update animation locally - let the SyncVar callback handle it
     }
 
     [Server]
@@ -224,13 +254,6 @@ public class WeaponController : NetworkBehaviour
         Debug.Log($"Parry check on server: BlockDuration = {BlockDuration}, CanParry = {CanParry}, Success = {isParrySuccessful}");
         return isParrySuccessful;
     }
-
-    
-
-    // public bool IsBlocking()
-    // {
-    //     return isBlocking.;
-    // }
 
     IEnumerator ResetAttackCooldown()
     {
@@ -266,8 +289,8 @@ public class WeaponController : NetworkBehaviour
     [ServerRpc]
     private void BlockServerRpc(bool blocking)
     {
-        // _syncedIsBlocking = blocking;
-        SynchronizeBlockObserversRpc(blocking);
+        // Update the SyncVar on the server
+        isBlocking.Value = blocking;
     }
     
     [ObserversRpc(ExcludeOwner = true)]
@@ -287,15 +310,20 @@ public class WeaponController : NetworkBehaviour
     [ObserversRpc(ExcludeOwner = true)]
     private void SynchronizeBlockObserversRpc(bool blocking)
     {
-        // Handle the block state change for clients
-        if (blocking && !isBlocking.Value)
+        Debug.Log($"SynchronizeBlockObserversRpc received: blocking={blocking}, current isBlocking.Value={isBlocking.Value}");
+        
+        // Only update the animation state, don't call Block/StopBlocking to avoid recursion
+        if (Meele != null)
         {
-            Block();
+            Animator anim = Meele.GetComponent<Animator>();
+            if (anim != null)
+            {
+                anim.SetBool("IsBlocking", blocking);
+            }
         }
-        else if (!blocking && isBlocking.Value)
-        {
-            StopBlocking();
-        }
+        
+        // Update our local tracking variable to match
+        // isBlocking.Value should already be updated through the SyncVar system
     }
 
     [ObserversRpc]
