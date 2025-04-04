@@ -39,18 +39,38 @@ public class WeaponSwitch : NetworkBehaviour
     private void OnSelectedWeaponChanged(int prev, int next, bool asServer)
     {
         Debug.Log($"Weapon changed from {prev} to {next} on {(asServer ? "server" : "client")}");
-        if (!asServer) // Only select on clients
+        
+        // Ensure weapons are set before trying to select one
+        if (!weaponsSet && transform.childCount > 0)
         {
-            Select(next);
+            SetWeapons();
         }
+        
+        // Select the weapon on both server and clients
+        Select(next);
     }
     
     public override void OnStartClient()
     {
         base.OnStartClient();
+        
+        // Initialize weapons array for this client
         SetWeapons();
         
-        // No need to request current weapon as SyncVar will automatically synchronize
+        // Make sure to select the current weapon based on the SyncVar value
+        // that might have been set before this client connected
+        Select(_selectedWeapon.Value);
+    }
+    
+    public override void OnStartNetwork()
+    {
+        base.OnStartNetwork();
+        
+        // Make sure weapons are set when object is spawned on the network
+        if (!weaponsSet && transform.childCount > 0)
+        {
+            SetWeapons();
+        }
     }
     
     private void SetWeapons()
@@ -63,7 +83,7 @@ public class WeaponSwitch : NetworkBehaviour
         }
         
         if (keys == null) keys = new KeyCode[weapons.Length];
-        if(transform.childCount==3){
+        if(transform.childCount > 0){
             weaponsSet = true;
         }
         
@@ -75,12 +95,10 @@ public class WeaponSwitch : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        if(!weaponsSet){
+        if(!weaponsSet && transform.childCount > 0){
             SetWeapons();
         }
         
-        int previousSelectedWeapon = _selectedWeapon.Value;
-
         for(int i = 0; i < keys.Length; i++)
         {
             if (Input.GetKeyDown(keys[i]) && timeSinceLastSwitch >= switchTime)
@@ -114,6 +132,7 @@ public class WeaponSwitch : NetworkBehaviour
     {
         // Update the SyncVar on the server, which will automatically sync to clients
         _selectedWeapon.Value = weaponIndex;
+        Select(_selectedWeapon.Value);
         Debug.Log($"Server: Changed weapon to index {weaponIndex}");
     }
 }
