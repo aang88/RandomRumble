@@ -43,6 +43,7 @@ public class GameStateManager : NetworkBehaviour
     public Text Rounds1;
     public Text Rounds2;
     private bool weaponSelectionTriggered = false;
+    private bool hiddenCanvas = false;
 
     private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
     private Dictionary<NetworkConnection, string[]> _playerInventories = new Dictionary<NetworkConnection, string[]>();
@@ -54,6 +55,8 @@ public class GameStateManager : NetworkBehaviour
     public Transform player2SpawnPoint;
     public PlayerMovement1 player1Movement;
     public PlayerMovement1 player2Movement;
+    private float itemPickTimeout = 30f; // Timeout in seconds
+    private float itemPickTimer = 0f;
 
     private bool playersInitialized = false;
 
@@ -81,8 +84,6 @@ public class GameStateManager : NetworkBehaviour
         if (!playersInitialized)
         {
             GameObject buttonParent = GameObject.Find("ButtonParent");
-
-            HideAllButButtonParent(UICanvas, buttonParent);
             UnityEngine.Debug.Log(player1 + " " + player2);
             UnityEngine.Debug.Log("Players not initialized yet.");
             return;
@@ -124,12 +125,24 @@ public class GameStateManager : NetworkBehaviour
                 ProcessRoundEnd();
                 break;
             case GameState.ItemPick: // Handle weapon selection
-               
+                if (!hiddenCanvas && UICanvas != null)
+                {
+                    HideAllButButtonParent(UICanvas, GameObject.Find("ButtonParent"));
+                }
                 if (!weaponSelectionTriggered)
                 {
                     UnlockCursorForAllClients();
                     TriggerWeaponSelection();
                     weaponSelectionTriggered = true; // Set the flag to prevent repeated calls
+                }
+
+                itemPickTimer += Time.deltaTime;
+
+                if (AreAllPlayersReadyForNextRound() || itemPickTimer >= itemPickTimeout)
+                {
+                    Debug.Log("Transitioning from ItemPick to RoundStart.");
+                    currentState.Value = GameState.RoundStart;
+                    weaponSelectionTriggered = false;
                 }
                 break;
             case GameState.GameOver:
@@ -145,6 +158,22 @@ public class GameStateManager : NetworkBehaviour
     {
         Debug.Log("UnlockCursorForAllClients called on all clients.");
         UnlockCursor();
+    }
+
+    private bool AreAllPlayersReadyForNextRound()
+    {
+        // Check if all players have selected their weapons
+        foreach (var entry in playerWeapons)
+        {
+            if (entry.Value == null || entry.Value.Length == 0)
+            {
+                Debug.Log($"Player {entry.Key.ClientId} has not completed weapon selection.");
+                return false; // At least one player has not selected their weapons
+            }
+        }
+
+        Debug.Log("All players have completed weapon selection.");
+        return true; // All players are ready
     }
 
     private void UnlockCursor()
@@ -176,6 +205,8 @@ public class GameStateManager : NetworkBehaviour
 
     private void HideAllButButtonParent(Canvas canvas, GameObject buttonParent)
     {
+        hiddenCanvas = true; // Set the flag to indicate the canvas is hidden
+        UnityEngine.Debug.Log("HideAllButButtonParent called.");
         foreach (Transform child in canvas.transform)
         {
             // Check if the child is the buttonParent
@@ -433,7 +464,7 @@ public class GameStateManager : NetworkBehaviour
         {
             if (UICanvas != null)
             {
-                EnableAllChildren();  //activates the entire canvas GameObject
+                EnableUIForAllClients();  //activates the entire canvas GameObject
             }
         }
         // Hide the canvas when the round ends (any state other than RoundStart)
@@ -558,6 +589,7 @@ public class GameStateManager : NetworkBehaviour
         // Use RPC to ensure all clients reset player positions
         BroadcastPlayerPositionsRpc(player1SpawnPoint.position, player2SpawnPoint.position);
 
+        EnableUIForAllClients(); // Show the UI elements
         currentState.Value = GameState.RoundPlaying;
     }
 
@@ -699,6 +731,24 @@ public class GameStateManager : NetworkBehaviour
         {
             currentState.Value = GameState.RoundStart;
         }
+    }
+
+    [ObserversRpc]
+    private void EnableUIForAllClients()
+    {
+        UnityEngine.Debug.Log("EnableUIForAllClients called on client.");
+        if (UICanvas == null)
+        {
+            Debug.LogError("Canvas is null. Cannot enable children.");
+            return;
+        }
+
+        foreach (Transform child in UICanvas.transform)
+        {
+            child.gameObject.SetActive(true);
+        }
+
+        Debug.Log("All children of the canvas have been enabled on all clients.");
     }
 
     public void ShowWinScreen()

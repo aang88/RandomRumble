@@ -129,7 +129,7 @@ public class PlayerCam : NetworkBehaviour
     {
         // For non-owner clients, apply the synced rotation values
         transform.rotation = Quaternion.Euler(syncedXRotation, syncedYRotation, 0);
-        UnityEngine.Debug.Log("Applying synced rotation: " + syncedXRotation + ", " + syncedYRotation + "to orientation" + orientation.rotation);
+        // UnityEngine.Debug.Log("Applying synced rotation: " + syncedXRotation + ", " + syncedYRotation + "to orientation" + orientation.rotation);
         if (orientation != null)
         {
             orientation.rotation = Quaternion.Euler(0, syncedYRotation, 0);

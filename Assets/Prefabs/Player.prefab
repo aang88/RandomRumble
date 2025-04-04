@@ -569,7 +569,9 @@ MonoBehaviour:
   - {fileID: 5706175537438828041, guid: 2a27c300fd907e344be0964571013203, type: 3}
   - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
   - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
+  muzzlePosition: {fileID: 7612949762474880602}
   buttonPrefab: {fileID: 2208277893782286228, guid: e200411f24da54447b8d8ded6c13855a, type: 3}
+  playerCamera: {fileID: 7612949761273126359}
   buttonParent: {fileID: 0}
   weaponHolder: {fileID: 7612949762858392634}
 --- !u!1 &7612949762858392635
@@ -657,7 +659,7 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   keys: 3100000032000000
-  switchTime: 1
+  switchTime: 0.1
 --- !u!114 &4182531005294688448
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -15,7 +15,9 @@ public class WeaponSelection : NetworkBehaviour
     private GameObject[] selections = new GameObject[3];
     private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
 
+    public Transform muzzlePosition;
     public GameObject buttonPrefab; 
+    public Camera playerCamera;
     public RectTransform buttonParent; 
 
     public Transform weaponHolder;
@@ -64,6 +66,14 @@ public class WeaponSelection : NetworkBehaviour
         // Find the buttonParent in the scene (e.g., by tag or name)
         RectTransform buttonParentInScene = GameObject.Find("ButtonParent")?.GetComponent<RectTransform>();
 
+        if (muzzlePosition == null)
+        {
+            muzzlePosition = transform.Find("MuzzlePosition"); // Replace with the actual path
+            if (muzzlePosition == null)
+            {
+                Debug.LogError("MuzzlePosition not found!");
+            }
+        }
         // Assign the buttonParent to the WeaponSelection script
         if (buttonParentInScene != null)
         {
@@ -216,8 +226,36 @@ public class WeaponSelection : NetworkBehaviour
         for (int i = 0; i < selections.Length; i++)
         {
             GameObject weaponInstance = Instantiate(selections[i], weaponHolder);
-            weaponInstance.transform.localPosition = Vector3.zero; // Adjust position if needed
-            weaponInstance.transform.localRotation = Quaternion.identity; // Adjust rotation if needed
+            weaponInstance.transform.localPosition = Vector3.zero;
+            weaponInstance.transform.localRotation = Quaternion.identity;
+
+            DamageGun damageGun = weaponInstance.GetComponent<DamageGun>();
+            if (damageGun != null)
+            {
+                damageGun.playerCamera = playerCamera.transform;
+            }
+
+            Gun gun = weaponInstance.GetComponent<Gun>();
+            if (gun != null && damageGun != null)
+            {
+                gun.muzzleFlashPosition = muzzlePosition;
+                gun.onGunShoot.AddListener(damageGun.Shoot);
+            }
+
+            // NetworkObject gunNetworkObject = weaponInstance.GetComponent<NetworkObject>();
+            // if (gunNetworkObject == null)
+            // {
+            //     Debug.LogError($"NetworkObject is missing on weapon prefab: {weaponInstance.name}");
+            //     continue; // Skip this weapon instance
+            // }
+            // if (Owner == null)
+            // {
+            //     Debug.LogError("Owner is null. Cannot assign ownership.");
+            //     continue; // Skip this weapon instance
+            // }
+            
+            // gunNetworkObject.GiveOwnership(Owner);
+            
         }
 
         Cursor.lockState = CursorLockMode.Locked;
