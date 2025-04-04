@@ -38,6 +38,14 @@ public class WeaponController : NetworkBehaviour
         isBlocking.OnChange += OnBlockingChanged;
     }
 
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        
+        // Initialize weapon references when the client starts
+        RefreshWeaponReferences();
+    }
+
     private void OnBlockingChanged(bool previousValue, bool newValue, bool asServer)
     {
         Debug.Log($"isBlocking changed from {previousValue} to {newValue} (asServer: {asServer})");
@@ -173,6 +181,16 @@ public class WeaponController : NetworkBehaviour
     public void MeeleAttack()
     {
         if (isAttacking) return;
+
+        if (!meeleIsSet || Meele == null)
+        {
+            RefreshWeaponReferences();
+            if (Meele == null)
+            {
+                Debug.LogError("Cannot attack - Meele reference is null");
+                return;
+            }
+        }
         
         isAttacking = true;
         if (collisionDetection != null)
@@ -283,7 +301,57 @@ public class WeaponController : NetworkBehaviour
     [ObserversRpc]
     private void NotifyAnimationObserversRpc(string animationName)
     {
+        // Check if Meele is set before trying to play animation
+        if (Meele == null)
+        {
+            // Try to set it if it's not already assigned
+            if (transform.childCount >= 2)
+            {
+                Meele = transform.GetChild(1).gameObject;
+                Debug.Log($"Late initialization of Meele to: {Meele.name}");
+            }
+            else
+            {
+                Debug.LogError("Cannot play animation - Meele is null and can't be initialized");
+                return;
+            }
+        }
+
         Animator anim = Meele.GetComponent<Animator>();
-        anim.Play(animationName);
+        if (anim != null)
+        {
+            anim.Play(animationName);
+            Debug.Log($"Playing animation {animationName} on {Meele.name}");
+        }
+        else
+        {
+            Debug.LogError($"Cannot play animation - No Animator component found on {Meele.name}");
+        }
+    }
+
+    public void RefreshWeaponReferences()
+    {
+        // Reset the flag so we'll try to set Meele again
+        meeleIsSet = false;
+        
+        // Try to initialize immediately if possible
+        if (transform.childCount >= 2)
+        {
+            Meele = transform.GetChild(1).gameObject;
+            Debug.Log($"RefreshWeaponReferences: Meele set to: {Meele.name}");
+            
+            // Set up collision detection too
+            collisionDetection = Meele.GetComponent<CollisionDetection>();
+            if (collisionDetection == null)
+            {
+                Debug.LogWarning("No CollisionDetection component found on Meele");
+            }
+            
+            meeleIsSet = true;
+        }
+        else
+        {
+            Debug.LogWarning($"RefreshWeaponReferences: Not enough children ({transform.childCount}) to set Meele reference");
+        }
     }
 }

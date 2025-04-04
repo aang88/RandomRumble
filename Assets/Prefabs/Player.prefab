@@ -621,7 +621,7 @@ MonoBehaviour:
   _componentIndexCache: 6
   _addedNetworkObject: {fileID: 4925201814354678423}
   _networkObjectCache: {fileID: 4925201814354678423}
-  Meele: {fileID: 4941971553626675561, guid: 3eaa137a7959b6c4dad12db6b0f69005, type: 3}
+  Meele: {fileID: 0}
   CanAttack: 1
   AttackCooldown: 1
   isAttacking: 0
