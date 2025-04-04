@@ -200,8 +200,24 @@ public class GameStateManager : NetworkBehaviour
 
         string[] weaponNames = selectedWeapons.Select(w => w.name).ToArray();
         _playerInventories[conn] = weaponNames;
-
-        Debug.Log($"Server: Stored weapons for player {conn.ClientId}: {string.Join(", ", weaponNames)}");
+        
+        NetworkObject playerObject = conn.FirstObject;
+        if (playerObject != null)
+        {
+            WeaponSelection weaponSelection = playerObject.GetComponent<WeaponSelection>();
+            if (weaponSelection != null)
+            {
+                weaponSelection.AssignWeapons(selectedWeapons);
+            }
+            else
+            {
+                Debug.LogError($"WeaponSelection component not found on player {conn.ClientId}");
+            }
+        }
+        else
+        {
+            Debug.LogError($"Player object not found for connection {conn.ClientId}");
+        }
     }
 
     public string[] GetPlayerWeapons(NetworkConnection conn)
