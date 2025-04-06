@@ -65,7 +65,9 @@ public class WeaponSelection : NetworkBehaviour
     {
         // Find the buttonParent in the scene (e.g., by tag or name)
         RectTransform buttonParentInScene = GameObject.Find("ButtonParent")?.GetComponent<RectTransform>();
-
+        OriginalMeeleWeapons = new List<GameObject>(MeeleWeapons);
+        OriginalRangedWeapons = new List<GameObject>(RangedWeapons);
+        OriginalMiscWeapons = new List<GameObject>(MiscWeapons);
         if (muzzlePosition == null)
         {
             muzzlePosition = transform.Find("MuzzlePosition"); // Replace with the actual path
@@ -264,10 +266,11 @@ public class WeaponSelection : NetworkBehaviour
         // Remove or deactivate the buttonParent
         if (buttonParent != null)
         {
-            Destroy(buttonParent.gameObject); // Completely removes the buttonParent and its children
-            // Alternatively, deactivate it:
-            // buttonParent.gameObject.SetActive(false);
-            Debug.Log("buttonParent has been removed or deactivated.");
+            foreach (Transform child in buttonParent)
+            {
+                Destroy(child.gameObject); // Destroy each child of buttonParent
+            }
+            Debug.Log("All children of buttonParent have been removed.");
         }
 
         Debug.Log("Weapons successfully attached to the player's weaponHolder.");
@@ -442,18 +445,21 @@ public class WeaponSelection : NetworkBehaviour
         }
     }
 
-    private void ResetWeaponPool(List<GameObject> otherPlayerWeapons)
+    public void ResetWeaponPool(List<GameObject> otherPlayerWeapons)
     {
         MeeleWeapons = new List<GameObject>(OriginalMeeleWeapons);
         RangedWeapons = new List<GameObject>(OriginalRangedWeapons);
         MiscWeapons = new List<GameObject>(OriginalMiscWeapons);
 
         // Remove weapons already attached to the other player
-        foreach (var weapon in otherPlayerWeapons)
+        if (otherPlayerWeapons != null && otherPlayerWeapons.Count > 0)
         {
-            MeeleWeapons.Remove(weapon);
-            RangedWeapons.Remove(weapon);
-            MiscWeapons.Remove(weapon);
+            foreach (var weapon in otherPlayerWeapons)
+            {
+                MeeleWeapons.Remove(weapon);
+                RangedWeapons.Remove(weapon);
+                MiscWeapons.Remove(weapon);
+            }
         }
 
         UnityEngine.Debug.Log("Weapon pools have been reset for re-picking, excluding other player's weapons.");

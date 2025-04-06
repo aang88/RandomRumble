@@ -31,7 +31,7 @@ public class GameStateManager : NetworkBehaviour
     private readonly SyncVar<float> player2Health = new SyncVar<float>();
     private readonly SyncVar<int> player1Stocks = new SyncVar<int>();
     private readonly SyncVar<int> player2Stocks = new SyncVar<int>();
-
+    private Entity roundLoser;
     public float startingTime = 40f;
 
     [Header("UI Elements")]
@@ -133,7 +133,17 @@ public class GameStateManager : NetworkBehaviour
                 if (!weaponSelectionTriggered)
                 {
                     UnlockCursorForAllClients();
-                    TriggerWeaponSelection();
+
+                    if (roundLoser == null) // First round, both players pick
+                    {
+                        TriggerWeaponSelectionForAllPlayers();
+                    }
+                    else // Subsequent rounds, only the loser picks
+                    {
+                        NetworkConnection loserConnection = roundLoser.GetComponent<NetworkObject>().Owner;
+                        TargetTriggerWeaponSelection(loserConnection);
+                    }
+
                     weaponSelectionTriggered = true; // Set the flag to prevent repeated calls
                 }
 
@@ -145,6 +155,7 @@ public class GameStateManager : NetworkBehaviour
                     currentState.Value = GameState.RoundStart;
                     weaponSelectionTriggered = false;
                     ResetPlayerReadiness();
+                    roundLoser = null;
                 }
                 break;
             case GameState.GameOver:
@@ -165,27 +176,28 @@ public class GameStateManager : NetworkBehaviour
     private bool AreAllPlayersReadyForNextRound()
     {
         Debug.Log("Checking if all players are ready for the next round.");
-        
-        if (playerReadyStatus.Count < 2) // Assuming 2 players
-        {
-            Debug.LogWarning("Not all players have reported readiness.");
-            return false;
-        }
 
-        foreach (var entry in playerReadyStatus)
+        if (roundLoser == null) // First round, both players must be ready
         {
-            Debug.Log($"Player {entry.Key.ClientId} ready status: {entry.Value}");
-            if (!entry.Value)
+            if (playerReadyStatus.Count < 2) // Assuming 2 players
             {
-                Debug.Log($"Player {entry.Key.ClientId} is not ready.");
-                return false; // At least one player is not ready
+                Debug.LogWarning("Not all players have reported readiness.");
+                return false;
+            }
+        }
+        else // Subsequent rounds, only the loser must be ready
+        {
+            NetworkConnection loserConnection = roundLoser.GetComponent<NetworkObject>().Owner;
+            if (!playerReadyStatus.ContainsKey(loserConnection) || !playerReadyStatus[loserConnection])
+            {
+                Debug.Log($"Loser {loserConnection.ClientId} is not ready.");
+                return false;
             }
         }
 
-        Debug.Log("All players are ready for the next round.");
-        return true; // All players are ready
+        Debug.Log("All required players are ready for the next round.");
+        return true;
     }
-
     private void ResetPlayerReadiness()
     {
         foreach (var key in playerReadyStatus.Keys.ToList())
@@ -345,25 +357,31 @@ public class GameStateManager : NetworkBehaviour
     }
 
 
-    [ObserversRpc]
-    private void TriggerWeaponSelection()
+    private void TriggerWeaponSelectionForAllPlayers()
     {
-        Debug.Log("TriggerWeaponSelection called on client.");
+        Debug.Log("Triggering weapon selection for all players.");
+        if (player1 != null)
+        {
+            NetworkConnection player1Connection = player1.GetComponent<NetworkObject>().Owner;
+            TargetTriggerWeaponSelection(player1Connection);
+        }
+
+        if (player2 != null)
+        {
+            NetworkConnection player2Connection = player2.GetComponent<NetworkObject>().Owner;
+            TargetTriggerWeaponSelection(player2Connection);
+        }
+    }
+
+    [TargetRpc]
+    private void TargetTriggerWeaponSelection(NetworkConnection target)
+    {
+        Debug.Log($"Triggering weapon selection for player {target.ClientId}.");
         WeaponSelection[] weaponSelections = FindObjectsOfType<WeaponSelection>();
         foreach (var weaponSelection in weaponSelections)
         {
-            Debug.Log($"WeaponSelection found. IsOwner: {weaponSelection.IsOwner}, GameObject: {weaponSelection.gameObject.name}, InstanceID: {weaponSelection.GetInstanceID()}");
             if (weaponSelection.IsOwner)
             {
-                if (weaponSelection.buttonPrefab == null)
-                {
-                    Debug.LogError($"ButtonPrefab is not assigned in the owned WeaponSelection on {weaponSelection.gameObject.name}, InstanceID: {weaponSelection.GetInstanceID()}");
-                }
-                else
-                {
-                    Debug.Log($"ButtonPrefab is assigned: {weaponSelection.buttonPrefab.name} on {weaponSelection.gameObject.name}, InstanceID: {weaponSelection.GetInstanceID()}");
-                }
-
                 weaponSelection.PickRandomWeaponPool();
                 return;
             }
@@ -714,11 +732,13 @@ public class GameStateManager : NetworkBehaviour
         {
             player2.Stocks++;
             player2Stocks.Value = player2.Stocks;
+            roundLoser = player1;
         }
         else
         {
             player1.Stocks++;
             player1Stocks.Value = player1.Stocks;
+            roundLoser = player1;
         }
     }
 
@@ -738,6 +758,8 @@ public class GameStateManager : NetworkBehaviour
     {
         // Disable player movement
         SetPlayersEnabled(false);
+        ResetWeaponPoolsForNextRound();
+
 
         // Delay before proceeding to next state
         StartCoroutine(DelayedStateTransition(2.0f));
@@ -747,6 +769,37 @@ public class GameStateManager : NetworkBehaviour
     {
         if (player1Movement != null) player1Movement.enabled = enabled;
         if (player2Movement != null) player2Movement.enabled = enabled;
+    }
+
+
+    private void ResetWeaponPoolsForNextRound()
+    {
+        Debug.Log("Resetting weapon pools for the next round.");
+
+        // Get the weapons selected by each player
+        List<GameObject> player1Weapons = playerWeapons.ContainsKey(player1.GetComponent<NetworkObject>().Owner)
+            ? playerWeapons[player1.GetComponent<NetworkObject>().Owner].ToList()
+            : new List<GameObject>();
+
+        List<GameObject> player2Weapons = playerWeapons.ContainsKey(player2.GetComponent<NetworkObject>().Owner)
+            ? playerWeapons[player2.GetComponent<NetworkObject>().Owner].ToList()
+            : new List<GameObject>();
+
+        // Reset weapon pools for both players
+        foreach (var weaponSelection in FindObjectsOfType<WeaponSelection>())
+        {
+            if (weaponSelection.IsOwner)
+            {
+                if (weaponSelection.Owner == player1.GetComponent<NetworkObject>().Owner)
+                {
+                    weaponSelection.ResetWeaponPool(player2Weapons); // Exclude player2's weapons
+                }
+                else if (weaponSelection.Owner == player2.GetComponent<NetworkObject>().Owner)
+                {
+                    weaponSelection.ResetWeaponPool(player1Weapons); // Exclude player1's weapons
+                }
+            }
+        }
     }
 
     private IEnumerator DelayedStateTransition(float delay)
@@ -763,7 +816,7 @@ public class GameStateManager : NetworkBehaviour
         }
         else
         {
-            currentState.Value = GameState.RoundStart;
+            currentState.Value = GameState.ItemPick;
         }
     }
 
