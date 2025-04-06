@@ -45,6 +45,7 @@ public class GameStateManager : NetworkBehaviour
     private bool weaponSelectionTriggered = false;
     private bool hiddenCanvas = false;
 
+    private Dictionary<NetworkConnection, bool> playerReadyStatus = new Dictionary<NetworkConnection, bool>();
     private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
     private Dictionary<NetworkConnection, string[]> _playerInventories = new Dictionary<NetworkConnection, string[]>();
 
@@ -143,6 +144,7 @@ public class GameStateManager : NetworkBehaviour
                     Debug.Log("Transitioning from ItemPick to RoundStart.");
                     currentState.Value = GameState.RoundStart;
                     weaponSelectionTriggered = false;
+                    ResetPlayerReadiness();
                 }
                 break;
             case GameState.GameOver:
@@ -162,18 +164,36 @@ public class GameStateManager : NetworkBehaviour
 
     private bool AreAllPlayersReadyForNextRound()
     {
-        // Check if all players have selected their weapons
-        foreach (var entry in playerWeapons)
+        Debug.Log("Checking if all players are ready for the next round.");
+        
+        if (playerReadyStatus.Count < 2) // Assuming 2 players
         {
-            if (entry.Value == null || entry.Value.Length == 0)
+            Debug.LogWarning("Not all players have reported readiness.");
+            return false;
+        }
+
+        foreach (var entry in playerReadyStatus)
+        {
+            Debug.Log($"Player {entry.Key.ClientId} ready status: {entry.Value}");
+            if (!entry.Value)
             {
-                Debug.Log($"Player {entry.Key.ClientId} has not completed weapon selection.");
-                return false; // At least one player has not selected their weapons
+                Debug.Log($"Player {entry.Key.ClientId} is not ready.");
+                return false; // At least one player is not ready
             }
         }
 
-        Debug.Log("All players have completed weapon selection.");
+        Debug.Log("All players are ready for the next round.");
         return true; // All players are ready
+    }
+
+    private void ResetPlayerReadiness()
+    {
+        foreach (var key in playerReadyStatus.Keys.ToList())
+        {
+            playerReadyStatus[key] = false;
+        }
+
+        Debug.Log("Player readiness has been reset for the next round.");
     }
 
     private void UnlockCursor()
@@ -249,6 +269,20 @@ public class GameStateManager : NetworkBehaviour
         {
             Debug.LogError($"Player object not found for connection {conn.ClientId}");
         }
+    }
+
+    public void SetPlayerReady(NetworkConnection conn, bool isReady)
+    {
+        if (playerReadyStatus.ContainsKey(conn))
+        {
+            playerReadyStatus[conn] = isReady;
+        }
+        else
+        {
+            playerReadyStatus.Add(conn, isReady);
+        }
+
+        Debug.Log($"Player {conn.ClientId} readiness set to {isReady}");
     }
 
     public string[] GetPlayerWeapons(NetworkConnection conn)

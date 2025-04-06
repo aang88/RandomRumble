@@ -218,7 +218,7 @@ public class WeaponSelection : NetworkBehaviour
         weaponConfirmed = true;
 
         Debug.Log("All weapons selected: " + string.Join(", ", selections.Select(w => w.name)));
-
+        NotifyWeaponSelectionCompleteServerRpc();
         // Send weapon names instead of GameObject references
         string[] weaponNames = selections.Select(w => w.name).ToArray();
         SubmitWeaponSelectionServerRpc(weaponNames);
@@ -271,6 +271,18 @@ public class WeaponSelection : NetworkBehaviour
         }
 
         Debug.Log("Weapons successfully attached to the player's weaponHolder.");
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void NotifyWeaponSelectionCompleteServerRpc(NetworkConnection sender = null)
+    {
+        if (sender == null)
+        {
+            Debug.LogError("NotifyWeaponSelectionCompleteServerRpc called without a valid sender.");
+            return;
+        }
+
+        GameStateManager.Instance.SetPlayerReady(sender, true);
     }
 
     public void AssignWeapons(GameObject[] selectedWeapons)
