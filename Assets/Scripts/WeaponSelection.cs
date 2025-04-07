@@ -68,10 +68,6 @@ public class WeaponSelection : NetworkBehaviour
         OriginalMeeleWeapons = new List<GameObject>(MeeleWeapons);
         OriginalRangedWeapons = new List<GameObject>(RangedWeapons);
         OriginalMiscWeapons = new List<GameObject>(MiscWeapons);
-
-        Debug.Log($"OriginalMeeleWeapons count: {OriginalMeeleWeapons.Count}");
-        Debug.Log($"OriginalRangedWeapons count: {OriginalRangedWeapons.Count}");
-        Debug.Log($"OriginalMiscWeapons count: {OriginalMiscWeapons.Count}");
         if (muzzlePosition == null)
         {
             muzzlePosition = transform.Find("MuzzlePosition"); // Replace with the actual path
@@ -455,7 +451,16 @@ public class WeaponSelection : NetworkBehaviour
         RangedWeapons = new List<GameObject>(OriginalRangedWeapons);
         MiscWeapons = new List<GameObject>(OriginalMiscWeapons);
 
-        weaponConfirmed = false;
+        // Remove weapons already attached to the other player
+        if (otherPlayerWeapons != null && otherPlayerWeapons.Count > 0)
+        {
+            foreach (var weapon in otherPlayerWeapons)
+            {
+                MeeleWeapons.Remove(weapon);
+                RangedWeapons.Remove(weapon);
+                MiscWeapons.Remove(weapon);
+            }
+        }
 
         UnityEngine.Debug.Log("Weapon pools have been reset for re-picking, excluding other player's weapons.");
     }

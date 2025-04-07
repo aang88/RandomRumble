@@ -774,7 +774,7 @@ public class GameStateManager : NetworkBehaviour
 
     private void ResetWeaponPoolsForNextRound()
     {
-        Debug.Log("Resetting weapon pools for the next round on the server.");
+        Debug.Log("Resetting weapon pools for the next round.");
 
         // Get the weapons selected by each player
         List<GameObject> player1Weapons = playerWeapons.ContainsKey(player1.GetComponent<NetworkObject>().Owner)
@@ -785,24 +785,16 @@ public class GameStateManager : NetworkBehaviour
             ? playerWeapons[player2.GetComponent<NetworkObject>().Owner].ToList()
             : new List<GameObject>();
 
-        // Notify all clients to reset their weapon pools
-        ResetWeaponPoolsObserversRpc(player1Weapons, player2Weapons);
-    }
-
-    [ObserversRpc]
-    private void ResetWeaponPoolsObserversRpc(List<GameObject> player1Weapons, List<GameObject> player2Weapons)
-    {
-        Debug.Log("Resetting weapon pools on all clients.");
-
+        // Reset weapon pools for both players
         foreach (var weaponSelection in FindObjectsOfType<WeaponSelection>())
         {
             if (weaponSelection.IsOwner)
             {
-                if (weaponSelection.Owner == GameStateManager.Instance.player1.GetComponent<NetworkObject>().Owner)
+                if (weaponSelection.Owner == player1.GetComponent<NetworkObject>().Owner)
                 {
                     weaponSelection.ResetWeaponPool(player2Weapons); // Exclude player2's weapons
                 }
-                else if (weaponSelection.Owner == GameStateManager.Instance.player2.GetComponent<NetworkObject>().Owner)
+                else if (weaponSelection.Owner == player2.GetComponent<NetworkObject>().Owner)
                 {
                     weaponSelection.ResetWeaponPool(player1Weapons); // Exclude player1's weapons
                 }
