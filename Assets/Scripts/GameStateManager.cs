@@ -382,6 +382,7 @@ public class GameStateManager : NetworkBehaviour
         {
             if (weaponSelection.IsOwner)
             {
+                weaponSelection.ResetWeaponPool();
                 weaponSelection.PickRandomWeaponPool();
                 return;
             }
@@ -759,8 +760,6 @@ public class GameStateManager : NetworkBehaviour
         // Disable player movement
         SetPlayersEnabled(false);
         ResetWeaponPoolsForNextRound();
-
-
         // Delay before proceeding to next state
         StartCoroutine(DelayedStateTransition(2.0f));
     }
@@ -771,33 +770,15 @@ public class GameStateManager : NetworkBehaviour
         if (player2Movement != null) player2Movement.enabled = enabled;
     }
 
-
     private void ResetWeaponPoolsForNextRound()
     {
         Debug.Log("Resetting weapon pools for the next round.");
 
-        // Get the weapons selected by each player
-        List<GameObject> player1Weapons = playerWeapons.ContainsKey(player1.GetComponent<NetworkObject>().Owner)
-            ? playerWeapons[player1.GetComponent<NetworkObject>().Owner].ToList()
-            : new List<GameObject>();
-
-        List<GameObject> player2Weapons = playerWeapons.ContainsKey(player2.GetComponent<NetworkObject>().Owner)
-            ? playerWeapons[player2.GetComponent<NetworkObject>().Owner].ToList()
-            : new List<GameObject>();
-
-        // Reset weapon pools for both players
         foreach (var weaponSelection in FindObjectsOfType<WeaponSelection>())
         {
             if (weaponSelection.IsOwner)
             {
-                if (weaponSelection.Owner == player1.GetComponent<NetworkObject>().Owner)
-                {
-                    weaponSelection.ResetWeaponPool(player2Weapons); // Exclude player2's weapons
-                }
-                else if (weaponSelection.Owner == player2.GetComponent<NetworkObject>().Owner)
-                {
-                    weaponSelection.ResetWeaponPool(player1Weapons); // Exclude player1's weapons
-                }
+                weaponSelection.ResetWeaponPool(); // Reset without excluding other player's weapons
             }
         }
     }

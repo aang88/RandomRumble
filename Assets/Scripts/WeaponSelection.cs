@@ -146,7 +146,9 @@ public class WeaponSelection : NetworkBehaviour
         }
         int randomIndex = Random.Range(0, weaponPool.Count);
         weaponSelecitons[iteration] = weaponPool[randomIndex];
+        UnityEngine.Debug.Log("Removing weapon: " + weaponPool[randomIndex].name + " from pool.");
         weaponPool.RemoveAt(randomIndex); // Remove to avoid duplicates
+
         
     }
 
@@ -184,6 +186,19 @@ public class WeaponSelection : NetworkBehaviour
             {
                 Debug.LogError("Button prefab is missing a Button component!");
             } 
+        }
+    }
+
+    private void ResetWeaponPoolsForNextRound()
+    {
+        Debug.Log("Resetting weapon pools for the next round.");
+
+        foreach (var weaponSelection in FindObjectsOfType<WeaponSelection>())
+        {
+            if (weaponSelection.IsOwner)
+            {
+                weaponSelection.ResetWeaponPool(); // Reset without excluding other player's weapons
+            }
         }
     }
 
@@ -445,22 +460,12 @@ public class WeaponSelection : NetworkBehaviour
         }
     }
 
-    public void ResetWeaponPool(List<GameObject> otherPlayerWeapons)
+    public void ResetWeaponPool()
     {
         MeeleWeapons = new List<GameObject>(OriginalMeeleWeapons);
         RangedWeapons = new List<GameObject>(OriginalRangedWeapons);
         MiscWeapons = new List<GameObject>(OriginalMiscWeapons);
 
-        // Remove weapons already attached to the other player
-        if (otherPlayerWeapons != null && otherPlayerWeapons.Count > 0)
-        {
-            foreach (var weapon in otherPlayerWeapons)
-            {
-                MeeleWeapons.Remove(weapon);
-                RangedWeapons.Remove(weapon);
-                MiscWeapons.Remove(weapon);
-            }
-        }
 
         UnityEngine.Debug.Log("Weapon pools have been reset for re-picking, excluding other player's weapons.");
     }
