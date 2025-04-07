@@ -27,8 +27,6 @@ public class WeaponSelection : NetworkBehaviour
     private GameObject[] PossibleMeeles = new GameObject[3];
     private GameObject[] PossibleGuns = new GameObject[3];
     private GameObject[] PossibleMiscs = new GameObject[3];
-    private bool weaponSelectionTriggered = false;
-
 
     private List<GameObject> OriginalMeeleWeapons;
     private List<GameObject> OriginalRangedWeapons;
@@ -101,22 +99,12 @@ public class WeaponSelection : NetworkBehaviour
 
     public void PickRandomWeaponPool(){
         // Randomly select 3 weapons from the list
-        UnityEngine.Debug.Log($"PickRandomWeaponPool called. StackTrace: {System.Environment.StackTrace}");
 
         if (!IsOwner)
         {
             Debug.LogWarning("PickRandomWeaponPool called on a non-owner client. Ignoring.");
             return;
         }
-
-        if (weaponSelectionTriggered)
-        {
-            Debug.LogWarning("PickRandomWeaponPool already triggered. Ignoring.");
-            return;
-        }
-
-        weaponSelectionTriggered = true;
-
         Debug.Log("PickRandomWeaponPool called.");
         Debug.Log($"MeeleWeapons count: {MeeleWeapons.Count}");
         Debug.Log($"RangedWeapons count: {RangedWeapons.Count}");
@@ -468,7 +456,6 @@ public class WeaponSelection : NetworkBehaviour
         MiscWeapons = new List<GameObject>(OriginalMiscWeapons);
 
         weaponConfirmed = false;
-        weaponSelectionTriggered = false;
 
         UnityEngine.Debug.Log("Weapon pools have been reset for re-picking, excluding other player's weapons.");
     }
