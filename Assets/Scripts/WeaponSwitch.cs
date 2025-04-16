@@ -22,7 +22,10 @@ public class WeaponSwitch : NetworkBehaviour
     
     private float timeSinceLastSwitch;
     public bool weaponsSet = false;
-    
+
+    private float clearDelay = 0;
+    private bool wasRecentlyCleared = false;
+        
     private void Awake()
     {
         // Register callback for when _selectedWeapon changes
@@ -49,6 +52,14 @@ public class WeaponSwitch : NetworkBehaviour
         // Select the weapon on both server and clients
         Select(next);
     }
+
+    public void Clear()
+    {
+        weaponsSet = false;
+        wasRecentlyCleared = true;
+        clearDelay = 0.2f; // 0.2 seconds delay before checking again
+    }
+
     
     public override void OnStartClient()
     {
@@ -94,6 +105,16 @@ public class WeaponSwitch : NetworkBehaviour
     private void Update()
     {
         if (!IsOwner) return;
+
+        if (wasRecentlyCleared)
+        {
+            clearDelay -= Time.deltaTime;
+            if (clearDelay <= 0)
+            {
+                wasRecentlyCleared = false;
+            }
+            return; // Skip the rest of Update while we're in the delay period
+        }
 
         if(!weaponsSet && transform.childCount > 0){
             SetWeapons();

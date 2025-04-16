@@ -169,10 +169,15 @@ public class WeaponSelection : NetworkBehaviour
             Destroy(child.gameObject); // Destroy each child GameObject
         }
 
-        WeaponSwitch weaponSwitch = GetComponent<WeaponSwitch>();
+        WeaponSwitch weaponSwitch = weaponHolder.GetComponent<WeaponSwitch>();
         if (weaponSwitch != null)
         {
-            weaponSwitch.weaponsSet = false;
+            weaponSwitch.Clear();
+            Debug.Log($"Reset weaponsSet flag on WeaponSwitch attached to {weaponHolder.name}");
+        }
+        else
+        {
+            Debug.LogError($"WeaponSwitch component not found on {weaponHolder.name}");
         }
         
         Debug.Log("All children of weaponHolder have been cleared.");
