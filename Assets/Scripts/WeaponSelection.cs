@@ -168,6 +168,13 @@ public class WeaponSelection : NetworkBehaviour
         {
             Destroy(child.gameObject); // Destroy each child GameObject
         }
+
+        WeaponSwitch weaponSwitch = GetComponent<WeaponSwitch>();
+        if (weaponSwitch != null)
+        {
+            weaponSwitch.weaponsSet = false;
+        }
+        
         Debug.Log("All children of weaponHolder have been cleared.");
     }
 

@@ -21,7 +21,7 @@ public class WeaponSwitch : NetworkBehaviour
     private readonly SyncVar<int> _selectedWeapon = new SyncVar<int>();
     
     private float timeSinceLastSwitch;
-    private bool weaponsSet = false;
+    public bool weaponsSet = false;
     
     private void Awake()
     {
