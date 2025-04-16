@@ -22,7 +22,7 @@ public class WeaponSelection : NetworkBehaviour
 
     public Transform weaponHolder;
 
-    private bool weaponConfirmed = false;
+    public bool weaponConfirmed = false;
 
     private GameObject[] PossibleMeeles = new GameObject[3];
     private GameObject[] PossibleGuns = new GameObject[3];
@@ -57,8 +57,18 @@ public class WeaponSelection : NetworkBehaviour
     {
         if (!weaponConfirmed && IsOwner)
         {
-            ConfirmSelection();
+            if (selections.All(w => w != null)) // Ensure all weapons are selected
+            {
+                ConfirmSelection();
+            }
         }
+    }
+
+    public void ResetSelections()
+    {
+        // Reset the selections array
+        selections = new GameObject[3];
+        Debug.Log("Weapon selections have been cleared for re-picking.");
     }
 
     void Start()
@@ -152,8 +162,20 @@ public class WeaponSelection : NetworkBehaviour
         
     }
 
+    public void ClearWeaponHolder()
+    {
+        foreach (Transform child in weaponHolder)
+        {
+            Destroy(child.gameObject); // Destroy each child GameObject
+        }
+        Debug.Log("All children of weaponHolder have been cleared.");
+    }
+
      private void CreateWeaponButtons(GameObject[] weaponSelections, string category)
     {
+        // Log the stack trace to identify where this method is being called from
+        System.Diagnostics.StackTrace stackTrace = new System.Diagnostics.StackTrace();
+        Debug.Log($"CreateWeaponButtons called for category: {category}. Stack trace:\n{stackTrace}");
        if (buttonParent == null)
         {
             Debug.LogError("buttonParent is not assigned! Buttons cannot be instantiated.");
@@ -223,6 +245,7 @@ public class WeaponSelection : NetworkBehaviour
 
     private void ConfirmSelection()
     {
+        Debug.Log("Confirming weapon selection... " + weaponConfirmed);
         foreach (var weapon in selections)
         {
             if (weapon == null)

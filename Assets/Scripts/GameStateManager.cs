@@ -140,6 +140,7 @@ public class GameStateManager : NetworkBehaviour
                     }
                     else // Subsequent rounds, only the loser picks
                     {
+                        UnityEngine.Debug.Log($"Round loser: {roundLoser.name}");
                         NetworkConnection loserConnection = roundLoser.GetComponent<NetworkObject>().Owner;
                         TargetTriggerWeaponSelection(loserConnection);
                     }
@@ -377,18 +378,29 @@ public class GameStateManager : NetworkBehaviour
     private void TargetTriggerWeaponSelection(NetworkConnection target)
     {
         Debug.Log($"Triggering weapon selection for player {target.ClientId}.");
-        WeaponSelection[] weaponSelections = FindObjectsOfType<WeaponSelection>();
-        foreach (var weaponSelection in weaponSelections)
+
+        // Get the NetworkObject associated with the target client
+        NetworkObject targetObject = target.FirstObject;
+        if (targetObject == null)
         {
-            if (weaponSelection.IsOwner)
-            {
-                weaponSelection.ResetWeaponPool();
-                weaponSelection.PickRandomWeaponPool();
-                return;
-            }
+            Debug.LogError($"No NetworkObject found for target client {target.ClientId}.");
+            return;
         }
 
-        Debug.LogError("No owned WeaponSelection component found for this client.");
+        // Get the WeaponSelection component from the target's NetworkObject
+        WeaponSelection weaponSelection = targetObject.GetComponent<WeaponSelection>();
+        if (weaponSelection != null && weaponSelection.IsOwner)
+        {
+            weaponSelection.ClearWeaponHolder();
+            weaponSelection.weaponConfirmed = false; // Reset only for the target client
+            weaponSelection.ResetSelections();
+            weaponSelection.ResetWeaponPool();
+            weaponSelection.PickRandomWeaponPool();
+        }
+        else
+        {
+            Debug.LogError($"No owned WeaponSelection component found for client {target.ClientId}.");
+        }
     }
 
     public override void OnStartClient()
