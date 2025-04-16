@@ -110,7 +110,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1718404626046038831}
-  m_LocalRotation: {x: -0, y: 0.7893545, z: -0, w: -0.6139377}
+  m_LocalRotation: {x: -0, y: 0.8200568, z: -0, w: 0.5722822}
   m_LocalPosition: {x: 0.11900079, y: -0.028000355, z: 0.20999914}
   m_LocalScale: {x: 3.5829003, y: 2.4165852, z: 2.7604003}
   m_ConstrainProportionsScale: 0
@@ -120,7 +120,7 @@ Transform:
   - {fileID: 1718404626045937425}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 255.75, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 110.181, z: 0}
 --- !u!95 &1718404626036572655
 Animator:
   serializedVersion: 5
@@ -245,7 +245,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 1
+  <PrefabId>k__BackingField: 0
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 11730447681827997413
   <SceneId>k__BackingField: 0

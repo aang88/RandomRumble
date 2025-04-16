@@ -87,7 +87,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   wp: {fileID: 0}
   HitParticle: {fileID: 0}
-  Damage: 20
+  Damage: 4
 --- !u!54 &4941971553626675564
 Rigidbody:
   m_ObjectHideFlags: 0
