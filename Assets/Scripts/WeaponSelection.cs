@@ -15,10 +15,13 @@ public class WeaponSelection : NetworkBehaviour
     private GameObject[] selections = new GameObject[3];
     private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
 
+    public TMPro.TextMeshProUGUI promptText;
     public Transform muzzlePosition;
     public GameObject buttonPrefab; 
     public Camera playerCamera;
     public RectTransform buttonParent; 
+    public RectTransform buttonParentRanged; 
+    public RectTransform buttonParentMisc;
 
     public Transform weaponHolder;
 
@@ -31,6 +34,11 @@ public class WeaponSelection : NetworkBehaviour
     private List<GameObject> OriginalMeeleWeapons;
     private List<GameObject> OriginalRangedWeapons;
     private List<GameObject> OriginalMiscWeapons;
+
+    [Header("Button Animation")]
+    public float buttonAnimDuration = 0.5f;
+    public float buttonDelayBetween = 0.05f;
+    public Vector2 buttonFlyInOffset = new Vector2(-300f, 0f); // Fly in from left
     // Start is called before the first frame update
     public override void OnStartClient()
     {
@@ -75,6 +83,8 @@ public class WeaponSelection : NetworkBehaviour
     {
         // Find the buttonParent in the scene (e.g., by tag or name)
         RectTransform buttonParentInScene = GameObject.Find("ButtonParent")?.GetComponent<RectTransform>();
+        RectTransform buttonParentRangedInScene = GameObject.Find("ButtonParentRanged")?.GetComponent<RectTransform>();
+        RectTransform buttonParentMiscInScene = GameObject.Find("ButtonParentMisc")?.GetComponent<RectTransform>();
         OriginalMeeleWeapons = new List<GameObject>(MeeleWeapons);
         OriginalRangedWeapons = new List<GameObject>(RangedWeapons);
         OriginalMiscWeapons = new List<GameObject>(MiscWeapons);
@@ -87,21 +97,40 @@ public class WeaponSelection : NetworkBehaviour
             }
         }
         // Assign the buttonParent to the WeaponSelection script
-        if (buttonParentInScene != null)
+        if (buttonParentInScene != null && buttonParentRangedInScene != null && buttonParentMiscInScene != null)
         {
-            SetButtonParent(buttonParentInScene);
+            buttonParent = buttonParentInScene;
+            buttonParentRanged = buttonParentRangedInScene;
+            buttonParentMisc = buttonParentMiscInScene;
+            Debug.Log($"buttonParent assigned from scene: {buttonParent.name}");
         }
         else
         {
             Debug.LogError("ButtonParent not found in the scene!");
         }
+
+        if (promptText == null)
+        {
+            // Try to find by name - replace "WeaponPrompt" with your actual prompt's name
+            promptText = GameObject.Find("Prompt")?.GetComponent<TMPro.TextMeshProUGUI>();
+            
+            // If not found, search for any TextMeshProUGUI tagged "Prompt" (optional)
+            if (promptText == null)
+            {
+                GameObject promptObj = GameObject.FindGameObjectWithTag("Prompt");
+                if (promptObj != null)
+                    promptText = promptObj.GetComponent<TMPro.TextMeshProUGUI>();
+            }
+            
+            if (promptText != null)
+                Debug.Log("Found prompt text: " + promptText.name);
+            else
+                Debug.LogWarning("Prompt text not found in scene!");
+            
+        }
     }
 
-    public void SetButtonParent(RectTransform parent)
-    {
-        buttonParent = parent;
-        Debug.Log($"buttonParent assigned dynamically: {buttonParent.name}");
-    }
+    
 
     public void PickRandomWeaponPool(){
         // Randomly select 3 weapons from the list
@@ -115,7 +144,7 @@ public class WeaponSelection : NetworkBehaviour
         Debug.Log($"MeeleWeapons count: {MeeleWeapons.Count}");
         Debug.Log($"RangedWeapons count: {RangedWeapons.Count}");
         Debug.Log($"MiscWeapons count: {MiscWeapons.Count}");
-        
+        ShowPrompt();
         StartCoroutine(DelayedUISetup());
     
     }
@@ -183,43 +212,178 @@ public class WeaponSelection : NetworkBehaviour
         Debug.Log("All children of weaponHolder have been cleared.");
     }
 
-     private void CreateWeaponButtons(GameObject[] weaponSelections, string category)
+    private void CreateWeaponButtons(GameObject[] weaponSelections, string category)
     {
-        // Log the stack trace to identify where this method is being called from
-        System.Diagnostics.StackTrace stackTrace = new System.Diagnostics.StackTrace();
-        Debug.Log($"CreateWeaponButtons called for category: {category}. Stack trace:\n{stackTrace}");
-       if (buttonParent == null)
+        if (buttonParent == null || buttonParentMisc == null || buttonParentRanged == null)
         {
             Debug.LogError("buttonParent is not assigned! Buttons cannot be instantiated.");
             return;
         }
+        
+        // Determine which parent to use and color based on category
+        RectTransform targetParent;
+        Color buttonColor;
+        
+        switch(category)
+        {
+            case "melee":
+                targetParent = buttonParent;
+                buttonColor = new Color(1f, 0.3f, 0.3f); // Red for melee
+                break;
+            case "ranged":
+                targetParent = buttonParentRanged; 
+                buttonColor = new Color(0.4f, 0.6f, 1f); // Blue for ranged
+                break;
+            case "misc":
+                targetParent = buttonParentMisc;
+                buttonColor = new Color(1f, 0.9f, 0.2f); // Yellow for misc
+                break;
+            default:
+                Debug.LogError("Invalid category: " + category);
+                return;
+        }
+        
+        // Clear any existing buttons
+        foreach (Transform child in targetParent)
+        {
+            Destroy(child.gameObject);
+        }
+        
+        // Create all buttons but set them invisible initially
+        List<GameObject> createdButtons = new List<GameObject>();
+        
         foreach (var weapon in weaponSelections)
         {
-            //  Debug.Log("weapon: "+ weapon + "category: " + category);
             if (weapon == null) continue;
-            Debug.Log($"Button instantiated for weapon: {weapon.name}, Category: {category}");
-
-            // Instantiate a button
-            GameObject button = Instantiate(buttonPrefab, buttonParent);
-
-            // Set the button's text to the weapon's name
+            
+            // Create the button with the proper parent
+            GameObject button = Instantiate(buttonPrefab, targetParent);
+            
+            // Set button text
             button.GetComponentInChildren<Text>().text = weapon.name;
-            Debug.Log($"Setting Button text to: {weapon.name}");
-      
-
-
-
-            // // Add a click event to the button
+            
+            // Get the button's image component and set initial transparent color
+            Image buttonImage = button.GetComponent<Image>();
+            if (buttonImage != null)
+            {
+                buttonImage.color = new Color(buttonColor.r, buttonColor.g, buttonColor.b, 0f);
+            }
+            
+            // Set text to be initially transparent
+            Text buttonText = button.GetComponentInChildren<Text>();
+            if (buttonText != null)
+            {
+                Color textColor = buttonText.color;
+                buttonText.color = new Color(textColor.r, textColor.g, textColor.b, 0f);
+            }
+            
+            // Position for animation - add the fly-in offset
+            RectTransform buttonRect = button.GetComponent<RectTransform>();
+            if (buttonRect != null)
+            {
+                buttonRect.anchoredPosition += buttonFlyInOffset;
+            }
+            
+            // Add click event
             Button buttonComponent = button.GetComponent<Button>();
             if (buttonComponent != null)
             {
                 buttonComponent.onClick.AddListener(() => SelectWeapon(weapon, category));
-                Debug.Log($"Listener added to button for weapon: {weapon.name}");
             }
-            else
+            
+            // Add to list for animation
+            createdButtons.Add(button);
+        }
+        
+        // Start animations for this category
+        StartCoroutine(AnimateButtonCategory(createdButtons, category));
+    }
+
+    // Animate buttons in a category with staggered timing
+    private IEnumerator AnimateButtonCategory(List<GameObject> buttons, string category)
+    {
+        // Delay each category based on its type
+        float categoryDelay = 0f;
+        switch(category)
+        {
+            case "melee":
+                categoryDelay = 0f; // First category, no delay
+                break;
+            case "ranged": 
+                categoryDelay = 0.3f; // Start after melee buttons
+                break;
+            case "misc":
+                categoryDelay = 0.6f; // Start after ranged buttons
+                break;
+        }
+        
+        yield return new WaitForSeconds(categoryDelay);
+        
+        // Animate each button in the category
+        for (int i = 0; i < buttons.Count; i++)
+        {
+            StartCoroutine(AnimateSingleButton(buttons[i], i * buttonDelayBetween));
+            yield return new WaitForSeconds(buttonDelayBetween);
+        }
+    }
+
+    // Animate a single button with fade-in and movement
+    private IEnumerator AnimateSingleButton(GameObject button, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        
+        Image buttonImage = button.GetComponent<Image>();
+        Text buttonText = button.GetComponentInChildren<Text>();
+        RectTransform buttonRect = button.GetComponent<RectTransform>();
+        
+        // Store the final position from the layout system
+        Vector2 finalPosition = buttonRect.anchoredPosition;
+        
+        // Apply the initial offset for animation
+        Vector2 startPos = finalPosition + buttonFlyInOffset;
+        buttonRect.anchoredPosition = startPos;
+        
+        float elapsed = 0f;
+        
+        while (elapsed < buttonAnimDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / buttonAnimDuration);
+            t = Mathf.SmoothStep(0f, 1f, t); // Smooth easing
+            
+            // Move from start to final position (not calculating offset again)
+            buttonRect.anchoredPosition = Vector2.Lerp(startPos, finalPosition, t);
+            
+            // Fade in image
+            if (buttonImage != null)
             {
-                Debug.LogError("Button prefab is missing a Button component!");
-            } 
+                Color color = buttonImage.color;
+                buttonImage.color = new Color(color.r, color.g, color.b, t);
+            }
+            
+            // Fade in text
+            if (buttonText != null)
+            {
+                Color color = buttonText.color;
+                buttonText.color = new Color(color.r, color.g, color.b, t);
+            }
+            
+            yield return null;
+        }
+        
+        // Ensure final values are exact - use the original calculated position
+        buttonRect.anchoredPosition = finalPosition;
+        
+        // Finalize alpha values
+        if (buttonImage != null) 
+        {
+            Color color = buttonImage.color;
+            buttonImage.color = new Color(color.r, color.g, color.b, 1f);
+        }
+        if (buttonText != null)
+        {
+            Color color = buttonText.color;
+            buttonText.color = new Color(color.r, color.g, color.b, 1f);
         }
     }
 
@@ -327,13 +491,21 @@ public class WeaponSelection : NetworkBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
+        HidePrompt();
         // Remove or deactivate the buttonParent
-        if (buttonParent != null)
+        if (buttonParent != null && buttonParentMisc != null && buttonParentRanged != null)
         {
             foreach (Transform child in buttonParent)
             {
                 Destroy(child.gameObject); // Destroy each child of buttonParent
+            }
+            foreach (Transform child in buttonParentMisc)
+            {
+                Destroy(child.gameObject); // Destroy each child of buttonParentMisc
+            }
+            foreach (Transform child in buttonParentRanged)
+            {
+                Destroy(child.gameObject); // Destroy each child of buttonParentRanged
             }
             Debug.Log("All children of buttonParent have been removed.");
         }
@@ -518,5 +690,47 @@ public class WeaponSelection : NetworkBehaviour
 
 
         UnityEngine.Debug.Log("Weapon pools have been reset for re-picking, excluding other player's weapons.");
+    }
+
+    public void ShowPrompt()
+    {
+        if (promptText != null)
+            StartCoroutine(FadePrompt(true, buttonAnimDuration));
+    }
+
+    // Hide the prompt with fade-out animation
+    public void HidePrompt()
+    {
+        if (promptText != null)
+            StartCoroutine(FadePrompt(false, buttonAnimDuration));
+    }
+
+    // Animation coroutine for fading the prompt
+    private IEnumerator FadePrompt(bool fadeIn, float duration)
+    {
+        if (promptText == null) yield break;
+        
+        float startAlpha = fadeIn ? 0f : 1f;
+        float targetAlpha = fadeIn ? 1f : 0f;
+        Color textColor = promptText.color;
+        
+        // Set initial alpha
+        promptText.color = new Color(textColor.r, textColor.g, textColor.b, startAlpha);
+        
+        // Fade over time
+        float elapsedTime = 0;
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsedTime / duration);
+            float smoothT = Mathf.SmoothStep(0, 1, t); // Smooth easing
+            float currentAlpha = Mathf.Lerp(startAlpha, targetAlpha, smoothT);
+            
+            promptText.color = new Color(textColor.r, textColor.g, textColor.b, currentAlpha);
+            yield return null;
+        }
+        
+        // Ensure we end at exactly the target alpha
+        promptText.color = new Color(textColor.r, textColor.g, textColor.b, targetAlpha);
     }
 }
