@@ -38,12 +38,17 @@ public class GameStateManager : NetworkBehaviour
     public Canvas UICanvas;
     public RawImage winScreen;
     public Text TimeLeftText;
-    public Text Health1;
-    public Text Health2;
+    // public Text Health1;
+    // public Text Health2;
     public Text Rounds1;
     public Text Rounds2;
     private bool weaponSelectionTriggered = false;
     private bool hiddenCanvas = false;
+
+    public Slider Health1;
+    public Slider Health2;
+
+    
 
     private Dictionary<NetworkConnection, bool> playerReadyStatus = new Dictionary<NetworkConnection, bool>();
     private Dictionary<NetworkConnection, GameObject[]> playerWeapons = new Dictionary<NetworkConnection, GameObject[]>();
@@ -66,7 +71,15 @@ public class GameStateManager : NetworkBehaviour
     {
 
         // Subscribe to the SyncVar change event
-
+        if (Health1 != null && player1 != null)
+        {
+            Health1.maxValue = player1.StartingHealth;
+        }
+        
+        if (Health2 != null && player2 != null)
+        {
+            Health2.maxValue = player2.StartingHealth;
+        }
         
         
         // Initialize player weapons dictionary
@@ -98,6 +111,22 @@ public class GameStateManager : NetworkBehaviour
         {
             HandleGameState();
         }
+    }
+
+    private IEnumerator AnimateHealthBar(Slider slider, float startValue, float endValue)
+    {
+        float animTime = 0.25f; // Animation duration in seconds
+        float elapsed = 0;
+        
+        while (elapsed < animTime)
+        {
+            elapsed += Time.deltaTime;
+            slider.value = Mathf.Lerp(startValue, endValue, elapsed/animTime);
+            yield return null;
+        }
+        
+        // Ensure we end at exactly the right value
+        slider.value = endValue;
     }
 
     private void HandleGameState()
@@ -866,23 +895,15 @@ public class GameStateManager : NetworkBehaviour
     {
         if (Health1 != null && player1 != null)
         {
-            // Use the synced value instead of directly accessing the local player
-            Health1.text = player1Health.Value.ToString("0");
-        }
-        else
-        {
-            Health1.text = "Initializing...";
+            // Smoothly animate health change
+            StartCoroutine(AnimateHealthBar(Health1, Health1.value, player1Health.Value));
         }
 
         if (Health2 != null && player2 != null)
         {
-            // Use the synced value instead of directly accessing the local player
-            Health2.text = player2Health.Value.ToString("0");
+            StartCoroutine(AnimateHealthBar(Health2, Health2.value, player2Health.Value));
         }
-        else
-        {
-            Health2.text = "Initializing...";
-        }
+        
 
         if (Rounds1 != null && player1 != null)
         {
@@ -899,11 +920,20 @@ public class GameStateManager : NetworkBehaviour
 
     public void HideText()
     {
-        Health1.text = "";
-        Health2.text = "";
-        Rounds1.text = "";
-        Rounds2.text = "";
-        TimeLeftText.text = "";
+        if (Health1 != null) 
+        {
+            Image fillImage = Health1.fillRect.GetComponent<Image>();
+            if (fillImage != null) fillImage.color = new Color(fillImage.color.r, fillImage.color.g, fillImage.color.b, 0f);
+        }
+        
+        if (Health2 != null)
+        {
+            Image fillImage = Health2.fillRect.GetComponent<Image>();
+            if (fillImage != null) fillImage.color = new Color(fillImage.color.r, fillImage.color.g, fillImage.color.b, 0f);
+        }
+        if (Rounds1 != null) Rounds1.text = "";
+        if (Rounds2 != null) Rounds2.text = "";
+        if (TimeLeftText != null) TimeLeftText.text = "";
     }
 
     // Add this method to sync health and stocks from local entities to SyncVars
