@@ -955,14 +955,14 @@ public class PlayerMovement1 : NetworkBehaviour
 
     private void ApplyCrouch()
     {
-        // Scale the visual model - this won't affect physics
+        // Scale the visual model
         modelTransform.localScale = new Vector3(
             modelTransform.localScale.x,
             startYScale * crouchYScale,
             modelTransform.localScale.z
         );
         
-        // Adjust the collider height for physics
+        // Adjust the collider height
         playerCollider.height = originalColliderHeight * crouchYScale;
         
         // Calculate the center offset to keep the bottom of the collider in place
@@ -973,8 +973,18 @@ public class PlayerMovement1 : NetworkBehaviour
             originalColliderCenter.z
         );
 
-        Vector3 cameraPosition = cam.transform.localPosition;
-        cam.transform.localPosition = cameraPosition;
+        // Update camera position to match the new height
+        Transform cameraHolder = transform.Find("CameraHolder");
+        if (cameraHolder != null)
+        {
+            // Position camera at the top of the collider
+            float newCameraY = playerCollider.height - centerYOffset;
+            cameraHolder.localPosition = new Vector3(
+                cameraHolder.localPosition.x,
+                newCameraY,
+                cameraHolder.localPosition.z
+            );
+        }
     }
 
     private void ApplyStand()

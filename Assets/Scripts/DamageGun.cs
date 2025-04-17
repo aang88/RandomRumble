@@ -172,11 +172,33 @@ public class DamageGun : NetworkBehaviour
                 NetworkObject networkObj = entityToDamage.GetComponent<NetworkObject>();
                 if (networkObj != null)
                 {
+                    // Check if it's a headshot
+                    float damageToApply = damage;
+                    bool isHeadshot = false;
+                    
+                    // Check if the hit object is named "Head"
+                    if (hitInfo.collider.gameObject.name == "Head" || 
+                        hitInfo.collider.gameObject.name.Contains("Head"))
+                    {
+                        // Double the damage for headshots
+                        damageToApply *= 2f;
+                        isHeadshot = true;
+                        UnityEngine.Debug.Log("HEADSHOT! Double damage applied.");
+                    }
+                    
                     UnityEngine.Debug.Log("Hit Entity: " + entityToDamage.name);
                     UnityEngine.Debug.Log("Hit!");  
-                    ownerEntity.RequestHitEntityServerRpc(networkObj, damage);
+                    
+                    // Pass the modified damage value
+                    ownerEntity.RequestHitEntityServerRpc(networkObj, damageToApply);
+                    
+                    // Optional: Show headshot effect or play sound
+                    if (isHeadshot)
+                    {
+                        UnityEngine.Debug.Log("headshot !");  
+                        // Example: Instantiate(headshotEffectPrefab, hitPoint, Quaternion.identity);
+                    }
                 }
-                // RequestDamageServerRpc(entity.NetworkObject, damage);
             }
         }
         else

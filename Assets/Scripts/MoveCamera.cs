@@ -13,9 +13,12 @@ public class MoveCamera : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void LateUpdate() // Changed from Update to LateUpdate
     {
-        transform.position = cameraPosition.position;
-        transform.rotation = cameraPosition.rotation;
+        if (cameraPosition != null)
+        {
+            transform.position = cameraPosition.position;
+            transform.rotation = cameraPosition.rotation;
+        }
     }
 }
