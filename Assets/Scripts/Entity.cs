@@ -253,6 +253,28 @@ public class Entity : NetworkBehaviour
         }
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    public void SyncVisualEffectsServerRpc(Vector3 hitPoint, Vector3 muzzlePosition, NetworkObject gunObject)
+    {
+        SyncVisualEffectsObserversRpc(hitPoint, muzzlePosition, gunObject);
+    }
+
+    [ObserversRpc]
+    private void SyncVisualEffectsObserversRpc(Vector3 hitPoint, Vector3 muzzlePosition, NetworkObject gunObject)
+    {
+        // Don't show effects on the client who fired
+        if (IsOwner) return;
+
+        if (gunObject != null)
+        {
+            DamageGun gun = gunObject.GetComponent<DamageGun>();
+            if (gun != null)
+            {
+                gun.CreateBulletTracerOnClient(muzzlePosition, hitPoint);
+            }
+        }
+    }
+
     void Start()
     {
         Health = StartingHealth;

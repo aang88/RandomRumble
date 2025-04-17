@@ -160,6 +160,12 @@ public class DamageGun : NetworkBehaviour
         {
             UnityEngine.Debug.Log("Fire!");
             CreateBulletTracer(hitInfo.point);
+            Vector3 hitPoint = hitInfo.point;
+            if (ownerEntity != null && playerNetworkObject != null)
+            {
+                ownerEntity.SyncVisualEffectsServerRpc(hitPoint, muzzlePoint.position, gameObject.GetComponent<NetworkObject>());
+            }
+           
             Entity entityToDamage = hitInfo.collider.GetComponentInParent<Entity>();
             if (entityToDamage != null)
             {
@@ -178,6 +184,10 @@ public class DamageGun : NetworkBehaviour
             // Tracer for misses (goes to max range)
             Vector3 endPoint = playerCamera.position + playerCamera.forward * bulletRange;
             CreateBulletTracer(endPoint);
+            if (ownerEntity != null && playerNetworkObject != null)
+            {
+                ownerEntity.SyncVisualEffectsServerRpc(endPoint, muzzlePoint.position, gameObject.GetComponent<NetworkObject>());
+            }
         }
     }
 
@@ -196,14 +206,18 @@ public class DamageGun : NetworkBehaviour
 
     private void CreateBulletTracer(Vector3 hitPoint)
     {
-        // Skip if no muzzle point is defined
         if (muzzlePoint == null)
         {
             UnityEngine.Debug.LogWarning("No muzzle point assigned for bullet tracer");
             return;
         }
-        
-        // If we don't have a tracer prefab, create a line renderer on the fly
+    
+        CreateBulletTracerOnClient(muzzlePoint.position, hitPoint);
+    }
+
+    public void CreateBulletTracerOnClient(Vector3 startPoint, Vector3 hitPoint)
+    {
+        // Skip if no muzzle point is defined
         GameObject tracer;
         if (bulletTracerPrefab != null)
         {
@@ -230,17 +244,19 @@ public class DamageGun : NetworkBehaviour
             line.positionCount = 2;
         }
         
-        // Set tracer position from muzzle to hit point
+        // Set tracer position from the provided start to end points
         LineRenderer lineRenderer = tracer.GetComponent<LineRenderer>();
         if (lineRenderer != null)
         {
-            lineRenderer.SetPosition(0, muzzlePoint.position);
+            lineRenderer.SetPosition(0, startPoint);
             lineRenderer.SetPosition(1, hitPoint);
         }
         
         // Destroy the tracer after a short duration
         Destroy(tracer, tracerDuration);
     }
+
+    
 
     // [ServerRpc(RequireOwnership = false)]
     // private void RequestDamageServerRpc(NetworkObject enemyObject, float damage)
