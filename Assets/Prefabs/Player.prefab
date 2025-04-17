@@ -565,7 +565,7 @@ MonoBehaviour:
   - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
   RangedWeapons:
   - {fileID: 1718404626046038831, guid: b40a7f4711482ee4abb7ea4dd90fb727, type: 3}
-  - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
+  - {fileID: 8298815192146174560, guid: 41ecb29d2e73d5d42a4a6f9ed9aff8e3, type: 3}
   - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
   MiscWeapons:
   - {fileID: 5706175537438828041, guid: 2a27c300fd907e344be0964571013203, type: 3}

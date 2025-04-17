@@ -91,6 +91,9 @@ public class WeaponSwitch : NetworkBehaviour
         for(int i = 0; i < transform.childCount; i++)
         {
             weapons[i] = transform.GetChild(i);
+            // weapons[i].localPosition = Vector3.zero;
+            // weapons[i].localRotation = Quaternion.identity;
+            // weapons[i].localScale = Vector3.one;
         }
         
         if (keys == null) keys = new KeyCode[weapons.Length];
