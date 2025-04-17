@@ -12,37 +12,54 @@ public class DamageGun : NetworkBehaviour
     public float bulletRange;
     public Transform playerCamera;
 
+    private Entity ownerEntity;
+
+    private void Start()
+    {
+        // Auto-find if not set manually
+        if (ownerEntity == null)
+        {
+            // Try to find the owner entity in the parent hierarchy
+            ownerEntity = GetComponentInParent<Entity>();
+            if (ownerEntity == null)
+            {
+                UnityEngine.Debug.LogError("Owner Entity not assigned and could not be found in parent.");
+                return;
+            }
+        }
+    }
+
     public void Shoot()
     {
-        if (!IsOwner) return; // Only the owner can shoot
-
+        
         Ray gunRay = new Ray(playerCamera.position, playerCamera.forward);
         UnityEngine.Debug.DrawRay(playerCamera.position, playerCamera.forward * bulletRange, Color.red, 1f);
         if (Physics.Raycast(gunRay, out RaycastHit hitInfo, bulletRange))
         {
             UnityEngine.Debug.Log("Fire!");
-            Entity entity = hitInfo.collider.GetComponentInParent<Entity>();
-
-            if (entity != null)
+            Entity entityToDamage = hitInfo.collider.GetComponentInParent<Entity>();
+            NetworkObject networkObj = entityToDamage.GetComponent<NetworkObject>();
+            if (entityToDamage != null)
             {
-                UnityEngine.Debug.Log("Hit Entity: " + entity.name);
+                UnityEngine.Debug.Log("Hit Entity: " + entityToDamage.name);
 
                 UnityEngine.Debug.Log("Hit!");  
-                RequestDamageServerRpc(entity.NetworkObject, damage);
+                ownerEntity.RequestHitEntityServerRpc(networkObj, damage);
+                // RequestDamageServerRpc(entity.NetworkObject, damage);
             }
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    private void RequestDamageServerRpc(NetworkObject enemyObject, float damage)
-    {
-        if (enemyObject != null)
-        {
-            Entity enemyEntity = enemyObject.GetComponent<Entity>();
-            if (enemyEntity != null)
-            {
-                enemyEntity.TakeDamage(damage);
-            }
-        }
-    }
+    // [ServerRpc(RequireOwnership = false)]
+    // private void RequestDamageServerRpc(NetworkObject enemyObject, float damage)
+    // {
+    //     if (enemyObject != null)
+    //     {
+    //         Entity enemyEntity = enemyObject.GetComponent<Entity>();
+    //         if (enemyEntity != null)
+    //         {
+    //             enemyEntity.TakeDamage(damage);
+    //         }
+    //     }
+    // }
 }

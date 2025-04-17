@@ -200,7 +200,7 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 8402207160177410723}
   _networkObjectCache: {fileID: 8402207160177410723}
-  damage: 10
+  damage: 5
   bulletRange: 99999
   playerCamera: {fileID: 0}
 --- !u!114 &8402207160177410723
@@ -245,13 +245,13 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 1
+  <PrefabId>k__BackingField: 9
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 11730447681827997413
   <SceneId>k__BackingField: 0
   SerializedTransformProperties:
     Position: {x: 0.11900079, y: -0.028000355, z: 0.20999914}
-    Rotation: {x: -0, y: 0.8200568, z: -0, w: 0.5722822}
+    Rotation: {x: -0, y: 0.7893545, z: -0, w: -0.6139377}
     Scale: {x: 3.5829003, y: 2.4165852, z: 2.7604003}
     IsValid: 1
 --- !u!1 &1718404626046038833

@@ -282,6 +282,21 @@ public class WeaponSelection : NetworkBehaviour
             weaponInstance.transform.localRotation = Quaternion.identity;
 
             DamageGun damageGun = weaponInstance.GetComponent<DamageGun>();
+            
+            if (weaponInstance != null)
+            {
+                // Make sure the weapon has a NetworkObject component
+                NetworkObject weaponNetObj = weaponInstance.GetComponent<NetworkObject>();
+                if (weaponNetObj == null)
+                {
+                    Debug.LogError($"Weapon {weaponInstance.name} is missing a NetworkObject component");
+                }
+                else if (!weaponNetObj.IsSpawned)
+                {
+                    Debug.LogError($"Weapon {weaponInstance.name} is not spawned on the network");
+                }
+            }
+            
             if (damageGun != null)
             {
                 damageGun.playerCamera = playerCamera.transform;

@@ -751,7 +751,7 @@ public class GameStateManager : NetworkBehaviour
         {
             player1.Stocks++;
             player1Stocks.Value = player1.Stocks;
-            roundLoser = player1;
+            roundLoser = player2;
         }
     }
 
