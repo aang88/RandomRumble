@@ -31,7 +31,7 @@ public class Gun : MonoBehaviour
 
                     onGunShoot?.Invoke();
                     currentCooldown = fireCooldown;
-                    Flash();
+                    // Flash();
                 }
             }
         }
@@ -43,7 +43,7 @@ public class Gun : MonoBehaviour
                 {
                     onGunShoot?.Invoke();
                     currentCooldown = fireCooldown;
-                    Flash();
+                    // Flash();
                 }
             }
         }
@@ -51,9 +51,9 @@ public class Gun : MonoBehaviour
         currentCooldown -= Time.deltaTime;
     }
 
-    void Flash()
-    {
-        GameObject Flash = Instantiate(muzzleFlash, muzzleFlashPosition);
-        Destroy(Flash, 0.1f);
-    }
+    // void Flash()
+    // {
+    //     GameObject Flash = Instantiate(muzzleFlash, muzzleFlashPosition);
+    //     Destroy(Flash, 0.1f);
+    // }
 }

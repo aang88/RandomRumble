@@ -15,9 +15,54 @@ public class DamageGun : NetworkBehaviour
 
     private Entity ownerEntity;
 
+    // Add at the top of the class with your other variables
+
+    [Header("Recoil Settings")]
+    public float recoilAmount = 2.0f;       // How much the gun kicks back
+    public float recoilRecoverySpeed = 10f;  // How fast it returns to normal
+    public float recoilRotationAmount = 5f;  // How much the gun rotates when fired
+    private Vector3 originalPosition;        // Starting position for recovery
+    private Vector3 recoilVelocity;          // For SmoothDamp
+    private Vector3 currentRotation;         // Current recoil rotation
+    private Vector3 rotationVelocity;        // For rotation SmoothDamp
+
+    [Header("Bullet Tracer")]
+    public GameObject bulletTracerPrefab;    // Line renderer prefab for the tracer
+    public Transform muzzlePoint;            // Where the bullet exits the gun
+    public float tracerDuration = 0.05f;     // How long the tracer is visible
+    public Material tracerMaterial;          // Optional material for tracer
+
     private void Start()
     {
         FindPlayerReferences(); 
+        originalPosition = transform.localPosition;
+    }
+
+    private void Update()
+    {
+        // Return gun to original position after recoil
+        if (transform.localPosition != originalPosition)
+        {
+            transform.localPosition = Vector3.SmoothDamp(
+                transform.localPosition, 
+                originalPosition, 
+                ref recoilVelocity, 
+                1 / recoilRecoverySpeed
+            );
+        }
+
+        // Return gun to original rotation after recoil
+        if (currentRotation != Vector3.zero)
+        {
+            currentRotation = Vector3.SmoothDamp(
+                currentRotation,
+                Vector3.zero,
+                ref rotationVelocity,
+                1 / recoilRecoverySpeed
+            );
+            
+            transform.localRotation = Quaternion.Euler(currentRotation);
+        }
     }
 
     private void FindPlayerReferences()
@@ -107,13 +152,14 @@ public class DamageGun : NetworkBehaviour
                 UnityEngine.Debug.Log("Found camera: " + playerCamera.name);
             }
         }
-        
+        ApplyRecoil();
         Ray gunRay = new Ray(playerCamera.position, playerCamera.forward);
         UnityEngine.Debug.DrawRay(playerCamera.position, playerCamera.forward * bulletRange, Color.red, 1f);
         UnityEngine.Debug.Log("Today is Friday in CALIFORNIA!");
         if (Physics.Raycast(gunRay, out RaycastHit hitInfo, bulletRange))
         {
             UnityEngine.Debug.Log("Fire!");
+            CreateBulletTracer(hitInfo.point);
             Entity entityToDamage = hitInfo.collider.GetComponentInParent<Entity>();
             if (entityToDamage != null)
             {
@@ -127,6 +173,73 @@ public class DamageGun : NetworkBehaviour
                 // RequestDamageServerRpc(entity.NetworkObject, damage);
             }
         }
+        else
+        {
+            // Tracer for misses (goes to max range)
+            Vector3 endPoint = playerCamera.position + playerCamera.forward * bulletRange;
+            CreateBulletTracer(endPoint);
+        }
+    }
+
+    private void ApplyRecoil()
+    {
+        // Apply position-based recoil
+        transform.localPosition -= Vector3.forward * recoilAmount;
+        
+        // Apply rotation-based recoil
+        float xRecoil = Random.Range(0.5f, 1f) * recoilRotationAmount;
+        float yRecoil = Random.Range(-0.5f, 0.5f) * (recoilRotationAmount * 0.5f);
+        
+        currentRotation += new Vector3(-xRecoil, yRecoil, 0);
+        transform.localRotation = Quaternion.Euler(currentRotation);
+    }
+
+    private void CreateBulletTracer(Vector3 hitPoint)
+    {
+        // Skip if no muzzle point is defined
+        if (muzzlePoint == null)
+        {
+            UnityEngine.Debug.LogWarning("No muzzle point assigned for bullet tracer");
+            return;
+        }
+        
+        // If we don't have a tracer prefab, create a line renderer on the fly
+        GameObject tracer;
+        if (bulletTracerPrefab != null)
+        {
+            tracer = Instantiate(bulletTracerPrefab);
+        }
+        else
+        {
+            tracer = new GameObject("BulletTracer");
+            LineRenderer line = tracer.AddComponent<LineRenderer>();
+            line.startWidth = 0.05f;
+            line.endWidth = 0.03f;
+            
+            // Use the tracer material if provided, otherwise create a basic one
+            if (tracerMaterial != null)
+            {
+                line.material = tracerMaterial;
+            }
+            else
+            {
+                line.material = new Material(Shader.Find("Sprites/Default"));
+                line.material.color = new Color(1f, 0.9f, 0.5f);  // Yellow-orange color
+            }
+            
+            line.positionCount = 2;
+        }
+        
+        // Set tracer position from muzzle to hit point
+        LineRenderer lineRenderer = tracer.GetComponent<LineRenderer>();
+        if (lineRenderer != null)
+        {
+            lineRenderer.SetPosition(0, muzzlePoint.position);
+            lineRenderer.SetPosition(1, hitPoint);
+        }
+        
+        // Destroy the tracer after a short duration
+        Destroy(tracer, tracerDuration);
     }
 
     // [ServerRpc(RequireOwnership = false)]
