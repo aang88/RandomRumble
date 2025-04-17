@@ -9,6 +9,8 @@ public class Entity : NetworkBehaviour
     public float StartingHealth;
     private float health;
 
+    public GameObject floatingTextPrefab;
+
     private bool parried;
 
     public Camera camera;
@@ -134,12 +136,47 @@ public class Entity : NetworkBehaviour
         }
     }
 
+
+    [ObserversRpc]
+    private void ShowDamageTextObserversRpc(float damageAmount, Vector3 position)
+    {
+        // Create the floating text object
+        if (floatingTextPrefab != null)
+        {
+            // Instantiate at position slightly above the entity
+            Vector3 spawnPosition = transform.position + Vector3.up * 2f;
+            
+            // Create the floating text game object
+            GameObject floatingTextObj = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
+            
+            // Get the TextMeshPro component
+            TMPro.TextMeshPro textMesh = floatingTextObj.GetComponent<TMPro.TextMeshPro>();
+            FloatingText floatingText = floatingTextObj.GetComponent<FloatingText>();
+            if (textMesh != null)
+            {
+                // Format the damage text (e.g. "-25")
+                textMesh.text = "-" + damageAmount.ToString("0");
+                
+            }
+
+            if (floatingText != null)
+            {
+                // Pass the local camera - on each client this will be their own camera
+                floatingText.playerCam = camera;
+            }
+            
+            // Destroy the text after some time
+            Destroy(floatingTextObj, 2f);
+        }
+    }
+
     public void TakeDamage(float damage)
     {
         if (weaponController == null)
         {
             UnityEngine.Debug.LogError("weaponController is null on " + gameObject.name);
             Health -= damage;
+            ShowDamageTextObserversRpc(damage, transform.position);
             return;
         }
 
@@ -159,6 +196,7 @@ public class Entity : NetworkBehaviour
                 {
                     Health -= damage / 2;
                     UnityEngine.Debug.Log("HIT: DAMAGE BLOCKED!");
+                    ShowDamageTextObserversRpc(damage, transform.position);
                 }
             }
             else
@@ -166,6 +204,7 @@ public class Entity : NetworkBehaviour
                 Health -= damage;
                 UnityEngine.Debug.Log("HIT: FULL DAMAGE!");
                 NotifyParryResult(false);
+                ShowDamageTextObserversRpc(damage, transform.position);
             }
         }
     }

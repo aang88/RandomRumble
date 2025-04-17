@@ -765,6 +765,27 @@ public class GameStateManager : NetworkBehaviour
         {
             PlayerDied(player2);
         }
+        else if (syncedTimeLeft.Value <= 0)
+        {
+            // Handle tie - determine loser based on remaining health
+            if (player1.Health < player2.Health)
+            {
+                // Player 1 has less health, so they're the "loser"
+                PlayerDied(player1);
+            }
+            else if (player2.Health < player1.Health) 
+            {
+                // Player 2 has less health, so they're the "loser"
+                PlayerDied(player2);
+            }
+            else
+            {
+                // True tie - randomly choose loser
+                roundLoser = (Random.value > 0.5f) ? player1 : player2;
+            }
+            
+            Debug.Log($"Time ran out! Tie determined. {roundLoser.name} will choose weapons.");
+        }
     }
 
     public void ProcessRoundEnd()

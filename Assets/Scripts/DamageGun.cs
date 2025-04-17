@@ -27,6 +27,26 @@ public class DamageGun : NetworkBehaviour
                 return;
             }
         }
+        if (playerCamera == null)
+        {
+            // Try to get camera from parent hierarchy
+            playerCamera = transform.root.GetComponentInChildren<Camera>()?.transform;
+            
+            // If there's an entity owner, try to use its camera
+            if (playerCamera == null && ownerEntity != null)
+            {
+                playerCamera = ownerEntity.camera?.transform;
+            }
+            
+            if (playerCamera == null)
+            {
+                UnityEngine.Debug.LogError("Player camera not assigned and couldn't be found automatically!");
+            }
+            else
+            {
+                UnityEngine.Debug.Log("Found camera: " + playerCamera.name);
+            }
+        }
     }
 
     public void Shoot()
