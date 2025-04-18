@@ -403,6 +403,7 @@ MonoBehaviour:
   - {fileID: 7612949762858392637}
   - {fileID: 7612949762858392636}
   - {fileID: 4182531005294688448}
+  - {fileID: 2761110622259726106}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -427,13 +428,13 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 5
+  <PrefabId>k__BackingField: 7
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 7807759643866311769
   <SceneId>k__BackingField: 0
   SerializedTransformProperties:
-    Position: {x: 28.256, y: 1.3000002, z: 20.378}
-    Rotation: {x: -0, y: -0, z: -0, w: 1}
+    Position: {x: 0, y: 0, z: 0}
+    Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 1, y: 1, z: 1}
     IsValid: 1
 --- !u!114 &2453454257251828845
@@ -562,12 +563,12 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 4925201814354678423}
   MeeleWeapons:
   - {fileID: 4941971553626675561, guid: 3eaa137a7959b6c4dad12db6b0f69005, type: 3}
-  - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
+  - {fileID: 4941971553626675561, guid: ba6598640fd549940b19a9b455ffac72, type: 3}
   - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
   RangedWeapons:
   - {fileID: 1718404626046038831, guid: b40a7f4711482ee4abb7ea4dd90fb727, type: 3}
   - {fileID: 8298815192146174560, guid: 41ecb29d2e73d5d42a4a6f9ed9aff8e3, type: 3}
-  - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
+  - {fileID: 8298815192146174560, guid: 39b24d16bf69a77439a5a91e977a0cca, type: 3}
   MiscWeapons:
   - {fileID: 5706175537438828041, guid: 2a27c300fd907e344be0964571013203, type: 3}
   - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
@@ -1086,9 +1087,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b9990c39c2e8a047ba643734c391cee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _componentIndexCache: 255
+  _componentIndexCache: 9
   _addedNetworkObject: {fileID: 4925201814354678423}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4925201814354678423}
   cameraTransform: {fileID: 7612949761273126357}
   rotationSpeed: 5
   maxRotationAngle: 80
