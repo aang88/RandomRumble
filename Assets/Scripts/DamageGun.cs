@@ -170,7 +170,7 @@ public class DamageGun : NetworkBehaviour
             if (entityToDamage != null)
             {
                 NetworkObject networkObj = entityToDamage.GetComponent<NetworkObject>();
-                if (networkObj != null)
+                if (networkObj != null && networkObj != playerNetworkObject)
                 {
                     // Check if it's a headshot
                     float damageToApply = damage;
