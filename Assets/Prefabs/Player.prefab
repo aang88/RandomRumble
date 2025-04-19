@@ -564,7 +564,7 @@ MonoBehaviour:
   MeeleWeapons:
   - {fileID: 4941971553626675561, guid: 3eaa137a7959b6c4dad12db6b0f69005, type: 3}
   - {fileID: 4941971553626675561, guid: ba6598640fd549940b19a9b455ffac72, type: 3}
-  - {fileID: 9084106034799390269, guid: 2d74893d6d2260b48afbab67c191c90a, type: 3}
+  - {fileID: 4941971553626675561, guid: e3c6d02ca2880b5488d8593ef111a620, type: 3}
   RangedWeapons:
   - {fileID: 1718404626046038831, guid: b40a7f4711482ee4abb7ea4dd90fb727, type: 3}
   - {fileID: 8298815192146174560, guid: 41ecb29d2e73d5d42a4a6f9ed9aff8e3, type: 3}
