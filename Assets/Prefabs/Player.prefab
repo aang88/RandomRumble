@@ -562,7 +562,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 4925201814354678423}
   _networkObjectCache: {fileID: 4925201814354678423}
   MeeleWeapons:
-  - {fileID: 4941971553626675561, guid: 3eaa137a7959b6c4dad12db6b0f69005, type: 3}
+  - {fileID: 4941971553626675561, guid: 3eeb71eb303a21049b5b201062cd0fef, type: 3}
   - {fileID: 4941971553626675561, guid: ba6598640fd549940b19a9b455ffac72, type: 3}
   - {fileID: 4941971553626675561, guid: e3c6d02ca2880b5488d8593ef111a620, type: 3}
   RangedWeapons:
@@ -634,7 +634,7 @@ MonoBehaviour:
   _componentIndexCache: 6
   _addedNetworkObject: {fileID: 4925201814354678423}
   _networkObjectCache: {fileID: 4925201814354678423}
-  Meele: {fileID: 0}
+  Meele: {fileID: 4941971553626675561, guid: 3eeb71eb303a21049b5b201062cd0fef, type: 3}
   CanAttack: 1
   AttackCooldown: 1
   isAttacking: 0
@@ -649,7 +649,7 @@ MonoBehaviour:
   isPlayer: 1
   meeleIsSet: 0
   autoAttack: 0
-  collisionDetection: {fileID: 4941971553626675566, guid: 3eaa137a7959b6c4dad12db6b0f69005, type: 3}
+  collisionDetection: {fileID: 4941971553626675566, guid: 3eeb71eb303a21049b5b201062cd0fef, type: 3}
 --- !u!114 &7612949762858392636
 MonoBehaviour:
   m_ObjectHideFlags: 0
