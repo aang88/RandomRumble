@@ -851,6 +851,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2469090964556977594}
   - component: {fileID: 2469090964556977593}
+  - component: {fileID: 466136180723773820}
   m_Layer: 5
   m_Name: Player1Health
   m_TagString: Untagged
@@ -933,6 +934,20 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &466136180723773820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2469090964556977595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b23f94bb04851a4e99f58ef72833c47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  healthSlider: {fileID: 2469090964556977593}
+  playerEntity: {fileID: -2496881582064209649, guid: 2e6011603fb3cc040bdc2952f104f88a, type: 3}
 --- !u!1 &2469090964660299043
 GameObject:
   m_ObjectHideFlags: 0
@@ -1343,6 +1358,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2469090965320459575}
   - component: {fileID: 2469090965320459574}
+  - component: {fileID: 6567657392446385507}
   m_Layer: 5
   m_Name: Player2Health
   m_TagString: Untagged
@@ -1425,6 +1441,20 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6567657392446385507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2469090965320459528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b23f94bb04851a4e99f58ef72833c47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  healthSlider: {fileID: 2469090965320459574}
+  playerEntity: {fileID: -2496881582064209649, guid: 2e6011603fb3cc040bdc2952f104f88a, type: 3}
 --- !u!1 &2469090965384585383
 GameObject:
   m_ObjectHideFlags: 0

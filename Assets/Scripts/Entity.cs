@@ -26,7 +26,7 @@ public class Entity : NetworkBehaviour
         }
         set
         {
-            health = value;
+            health = Mathf.Clamp(value, 0, StartingHealth);
             UnityEngine.Debug.Log(health);
         }
     }

@@ -12,6 +12,10 @@ public class WeaponController : NetworkBehaviour
     public bool isAttacking = false;
     public float AttackWindow = 1.0f;
 
+    public int currentAmmo = 30;
+    public int maxAmmo = 100;
+
+
     public Transform weaponOwner;
 
     public bool CanBlock = true;
@@ -382,4 +386,11 @@ public class WeaponController : NetworkBehaviour
             Debug.LogWarning($"RefreshWeaponReferences: Not enough children ({transform.childCount}) to set Meele reference");
         }
     }
+
+    public void AddAmmo(int amount)
+    {
+        currentAmmo = Mathf.Min(currentAmmo + amount, maxAmmo);
+        Debug.Log($"[WeaponController] Ammo increased to {currentAmmo}");
+    }
+
 }
