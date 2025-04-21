@@ -106,7 +106,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  fireCooldown: 7
+  fireCooldown: 2
   automatic: 1
   currentCooldown: 1
   muzzleFlash: {fileID: 5476309236312911118, guid: ea3d1c770bb517f49943482d2631e685, type: 3}
@@ -178,7 +178,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 9
+  <PrefabId>k__BackingField: 10
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 10716898440224203301
   <SceneId>k__BackingField: 0
